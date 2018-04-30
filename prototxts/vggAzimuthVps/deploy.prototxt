@@ -338,10 +338,14 @@ layer {
   type: "InnerProduct"
   bottom: "fc7"
   top: "fc8_e1"
-  blobs_lr: 0.1
-  blobs_lr: 0.2
-  weight_decay: 1
-  weight_decay: 0
+  param {
+    lr_mult: 0.1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 0.2
+    decay_mult: 0
+  }
   inner_product_param {
     num_output: 504
     weight_filler {
@@ -359,10 +363,14 @@ layer {
   type: "InnerProduct"
   bottom: "fc7"
   top: "fc8_e2"
-  blobs_lr: 0.1
-  blobs_lr: 0.2
-  weight_decay: 1
-  weight_decay: 0
+  param {
+    lr_mult: 0.1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 0.2
+    decay_mult: 0
+  }
   inner_product_param {
     num_output: 336
     weight_filler {
@@ -380,10 +388,14 @@ layer {
   type: "InnerProduct"
   bottom: "fc7"
   top: "fc8_e3"
-  blobs_lr: 0.1
-  blobs_lr: 0.2
-  weight_decay: 1
-  weight_decay: 0
+  param {
+    lr_mult: 0.1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 0.2
+    decay_mult: 0
+  }
   inner_product_param {
     num_output: 168
     weight_filler {
@@ -401,10 +413,14 @@ layer {
   type: "InnerProduct"
   bottom: "fc7"
   top: "fc8_e1coarse"
-  blobs_lr: 0.1
-  blobs_lr: 0.2
-  weight_decay: 1
-  weight_decay: 0
+  param {
+    lr_mult: 0.1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 0.2
+    decay_mult: 0
+  }
   inner_product_param {
     num_output: 84
     weight_filler {
@@ -422,10 +438,14 @@ layer {
   type: "InnerProduct"
   bottom: "fc7"
   top: "fc8_e2coarse"
-  blobs_lr: 0.1
-  blobs_lr: 0.2
-  weight_decay: 1
-  weight_decay: 0
+  param {
+    lr_mult: 0.1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 0.2
+    decay_mult: 0
+  }
   inner_product_param {
     num_output: 42
     weight_filler {
@@ -443,10 +463,14 @@ layer {
   type: "InnerProduct"
   bottom: "fc7"
   top: "fc8_e3coarse"
-  blobs_lr: 0.1
-  blobs_lr: 0.2
-  weight_decay: 1
-  weight_decay: 0
+  param {
+    lr_mult: 0.1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 0.2
+    decay_mult: 0
+  }
   inner_product_param {
     num_output: 42
     weight_filler {

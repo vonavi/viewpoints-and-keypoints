@@ -285,10 +285,14 @@ layer {
   type: "Convolution"
   bottom: "pool5"
   top: "conv6"
-  blobs_lr: 1
-  blobs_lr: 2
-  weight_decay: 1
-  weight_decay: 0
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
   convolution_param {
     num_output: 123
     kernel_size: 3
