@@ -1,7 +1,7 @@
 name: "vggRigidPoseNet"
-layers {
+layer {
   name: "data"
-  type: WINDOW_POSE_DATA
+  type: "WindowPoseData"
   top: "data"
   top: "label"
   top: "e1"
@@ -25,9 +25,9 @@ layers {
   }
   include { phase: TRAIN }
 }
-layers {
+layer {
   name: "data"
-  type: WINDOW_POSE_DATA
+  type: "WindowPoseData"
   top: "data"
   top: "label"
   top: "e1"
@@ -51,9 +51,9 @@ layers {
   }
   include { phase: TEST }
 }
-layers {
+layer {
   name: "conv1"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "data"
   top: "conv1"
   blobs_lr: 0
@@ -74,15 +74,15 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "relu1"
-  type: RELU
+  type: "ReLU"
   bottom: "conv1"
   top: "conv1"
 }
-layers {
+layer {
   name: "pool1"
-  type: POOLING
+  type: "Pooling"
   bottom: "conv1"
   top: "pool1"
   pooling_param {
@@ -91,9 +91,9 @@ layers {
     stride: 2
   }
 }
-layers {
+layer {
   name: "norm1"
-  type: LRN
+  type: "LRN"
   bottom: "pool1"
   top: "norm1"
   lrn_param {
@@ -102,9 +102,9 @@ layers {
     beta: 0.75
   }
 }
-layers {
+layer {
   name: "conv2"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "norm1"
   top: "conv2"
   blobs_lr: 0
@@ -126,15 +126,15 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "relu2"
-  type: RELU
+  type: "ReLU"
   bottom: "conv2"
   top: "conv2"
 }
-layers {
+layer {
   name: "pool2"
-  type: POOLING
+  type: "Pooling"
   bottom: "conv2"
   top: "pool2"
   pooling_param {
@@ -143,9 +143,9 @@ layers {
     stride: 2
   }
 }
-layers {
+layer {
   name: "norm2"
-  type: LRN
+  type: "LRN"
   bottom: "pool2"
   top: "norm2"
   lrn_param {
@@ -154,9 +154,9 @@ layers {
     beta: 0.75
   }
 }
-layers {
+layer {
   name: "conv3"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "norm2"
   top: "conv3"
   blobs_lr: 0
@@ -177,15 +177,15 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "relu3"
-  type: RELU
+  type: "ReLU"
   bottom: "conv3"
   top: "conv3"
 }
-layers {
+layer {
   name: "conv4"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "conv3"
   top: "conv4"
   blobs_lr: 0
@@ -207,15 +207,15 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "relu4"
-  type: RELU
+  type: "ReLU"
   bottom: "conv4"
   top: "conv4"
 }
-layers {
+layer {
   name: "conv5"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "conv4"
   top: "conv5"
   blobs_lr: 0
@@ -237,15 +237,15 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "relu5"
-  type: RELU
+  type: "ReLU"
   bottom: "conv5"
   top: "conv5"
 }
-layers {
+layer {
   name: "pool5"
-  type: POOLING
+  type: "Pooling"
   bottom: "conv5"
   top: "pool5"
   pooling_param {
@@ -254,9 +254,9 @@ layers {
     stride: 2
   }
 }
-layers {
+layer {
   name: "fc6"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "pool5"
   top: "fc6"
   blobs_lr: 0
@@ -275,24 +275,24 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "relu6"
-  type: RELU
+  type: "ReLU"
   bottom: "fc6"
   top: "fc6"
 }
-layers {
+layer {
   name: "drop6"
-  type: DROPOUT
+  type: "Dropout"
   bottom: "fc6"
   top: "fc6"
   dropout_param {
     dropout_ratio: 0.5
   }
 }
-layers {
+layer {
   name: "fc7"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "fc6"
   top: "fc7"
   blobs_lr: 0
@@ -311,24 +311,24 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "relu7"
-  type: RELU
+  type: "ReLU"
   bottom: "fc7"
   top: "fc7"
 }
-layers {
+layer {
   name: "drop7"
-  type: DROPOUT
+  type: "Dropout"
   bottom: "fc7"
   top: "fc7"
   dropout_param {
     dropout_ratio: 0.5
   }
 }
-layers {
+layer {
   name: "fc8_e1"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "fc7"
   top: "fc8_e1"
   blobs_lr: 0.1
@@ -347,9 +347,9 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "fc8_e2"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "fc7"
   top: "fc8_e2"
   blobs_lr: 0.1
@@ -368,9 +368,9 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "fc8_e3"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "fc7"
   top: "fc8_e3"
   blobs_lr: 0.1
@@ -389,9 +389,9 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "fc8_e1coarse"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "fc7"
   top: "fc8_e1coarse"
   blobs_lr: 0.1
@@ -410,9 +410,9 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "fc8_e2coarse"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "fc7"
   top: "fc8_e2coarse"
   blobs_lr: 0.1
@@ -431,9 +431,9 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "fc8_e3coarse"
-  type: INNER_PRODUCT
+  type: "InnerProduct"
   bottom: "fc7"
   top: "fc8_e3coarse"
   blobs_lr: 0.1
@@ -452,9 +452,9 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "pred_e1"
-  type: MASK_OUTPUTS
+  type: "MaskOutputs"
   bottom: "fc8_e1"
   bottom: "label"
   top: "pred_e1"
@@ -462,9 +462,9 @@ layers {
     kernel_size: 21
   }
 }
-layers {
+layer {
   name: "pred_e2"
-  type: MASK_OUTPUTS
+  type: "MaskOutputs"
   bottom: "fc8_e2"
   bottom: "label"
   top: "pred_e2"
@@ -472,9 +472,9 @@ layers {
     kernel_size: 21
   }
 }
-layers {
+layer {
   name: "pred_e3"
-  type: MASK_OUTPUTS
+  type: "MaskOutputs"
   bottom: "fc8_e3"
   bottom: "label"
   top: "pred_e3"
@@ -482,9 +482,9 @@ layers {
     kernel_size: 21
   }
 }
-layers {
+layer {
   name: "pred_e1coarse"
-  type: MASK_OUTPUTS
+  type: "MaskOutputs"
   bottom: "fc8_e1coarse"
   bottom: "label"
   top: "pred_e1coarse"
@@ -492,9 +492,9 @@ layers {
     kernel_size: 7
   }
 }
-layers {
+layer {
   name: "pred_e2coarse"
-  type: MASK_OUTPUTS
+  type: "MaskOutputs"
   bottom: "fc8_e2coarse"
   bottom: "label"
   top: "pred_e2coarse"
@@ -502,9 +502,9 @@ layers {
     kernel_size: 7
   }
 }
-layers {
+layer {
   name: "pred_e3coarse"
-  type: MASK_OUTPUTS
+  type: "MaskOutputs"
   bottom: "fc8_e3coarse"
   bottom: "label"
   top: "pred_e3coarse"
@@ -512,85 +512,85 @@ layers {
     kernel_size: 7
   }
 }
-layers {
+layer {
   name: "loss1"
-  type: SOFTMAX_LOSS
+  type: "SoftmaxWithLoss"
   bottom: "pred_e1"
   bottom: "e1"
 }
-layers {
+layer {
   name: "loss2"
-  type: SOFTMAX_LOSS
+  type: "SoftmaxWithLoss"
   bottom: "pred_e2"
   bottom: "e2"
 }
-layers {
+layer {
   name: "loss3"
-  type: SOFTMAX_LOSS
+  type: "SoftmaxWithLoss"
   bottom: "pred_e3"
   bottom: "e3"
 }
-layers {
+layer {
   name: "loss1c"
-  type: SOFTMAX_LOSS
+  type: "SoftmaxWithLoss"
   bottom: "pred_e1coarse"
   bottom: "e1coarse"
 }
-layers {
+layer {
   name: "loss2c"
-  type: SOFTMAX_LOSS
+  type: "SoftmaxWithLoss"
   bottom: "pred_e2coarse"
   bottom: "e2coarse"
 }
-layers {
+layer {
   name: "loss3c"
-  type: SOFTMAX_LOSS
+  type: "SoftmaxWithLoss"
   bottom: "pred_e3coarse"
   bottom: "e3coarse"
 }
-layers {
+layer {
   name: "accuracy1"
-  type: ACCURACY
+  type: "Accuracy"
   bottom: "pred_e1"
   bottom: "e1"
   top: "accuracy1"
   include { phase: TEST }
 }
-layers {
+layer {
   name: "accuracy2"
-  type: ACCURACY
+  type: "Accuracy"
   bottom: "pred_e2"
   bottom: "e2"
   top: "accuracy2"
   include { phase: TEST }
 }
-layers {
+layer {
   name: "accuracy3"
-  type: ACCURACY
+  type: "Accuracy"
   bottom: "pred_e3"
   bottom: "e3"
   top: "accuracy3"
   include { phase: TEST }
 }
-layers {
+layer {
   name: "accuracy1c"
-  type: ACCURACY
+  type: "Accuracy"
   bottom: "pred_e1coarse"
   bottom: "e1coarse"
   top: "accuracy1c"
   include { phase: TEST }
 }
-layers {
+layer {
   name: "accuracy2c"
-  type: ACCURACY
+  type: "Accuracy"
   bottom: "pred_e2coarse"
   bottom: "e2coarse"
   top: "accuracy2c"
   include { phase: TEST }
 }
-layers {
+layer {
   name: "accuracy3c"
-  type: ACCURACY
+  type: "Accuracy"
   bottom: "pred_e3coarse"
   bottom: "e3coarse"
   top: "accuracy3c"

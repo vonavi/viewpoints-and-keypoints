@@ -1,7 +1,7 @@
 name: "CaffeNet"
-layers {
+layer {
   name: "data"
-  type: WINDOW_MULTICLASS_KEYPOINT_DATA
+  type: "WindowMulticlassKeypointData"
   top: "data"
   top: "label"
   top: "filter"
@@ -20,9 +20,9 @@ layers {
   }
   include { phase: TRAIN }
 }
-layers {
+layer {
   name: "data"
-  type: WINDOW_MULTICLASS_KEYPOINT_DATA
+  type: "WindowMulticlassKeypointData"
   top: "data"
   top: "label"
   top: "filter"
@@ -41,285 +41,285 @@ layers {
   }
   include { phase: TEST }
 }
-layers {
+layer {
   bottom: "data"
   top: "conv1_1"
   name: "conv1_1"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 64
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv1_1"
   top: "conv1_1"
   name: "relu1_1"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv1_1"
   top: "conv1_2"
   name: "conv1_2"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 64
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv1_2"
   top: "conv1_2"
   name: "relu1_2"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv1_2"
   top: "pool1"
   name: "pool1"
-  type: POOLING
+  type: "Pooling"
   pooling_param {
     pool: MAX
     kernel_size: 2
     stride: 2
   }
 }
-layers {
+layer {
   bottom: "pool1"
   top: "conv2_1"
   name: "conv2_1"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 128
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv2_1"
   top: "conv2_1"
   name: "relu2_1"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv2_1"
   top: "conv2_2"
   name: "conv2_2"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 128
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv2_2"
   top: "conv2_2"
   name: "relu2_2"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv2_2"
   top: "pool2"
   name: "pool2"
-  type: POOLING
+  type: "Pooling"
   pooling_param {
     pool: MAX
     kernel_size: 2
     stride: 2
   }
 }
-layers {
+layer {
   bottom: "pool2"
   top: "conv3_1"
   name: "conv3_1"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 256
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv3_1"
   top: "conv3_1"
   name: "relu3_1"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv3_1"
   top: "conv3_2"
   name: "conv3_2"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 256
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv3_2"
   top: "conv3_2"
   name: "relu3_2"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv3_2"
   top: "conv3_3"
   name: "conv3_3"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 256
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv3_3"
   top: "conv3_3"
   name: "relu3_3"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv3_3"
   top: "pool3"
   name: "pool3"
-  type: POOLING
+  type: "Pooling"
   pooling_param {
     pool: MAX
     kernel_size: 2
     stride: 2
   }
 }
-layers {
+layer {
   bottom: "pool3"
   top: "conv4_1"
   name: "conv4_1"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 512
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv4_1"
   top: "conv4_1"
   name: "relu4_1"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv4_1"
   top: "conv4_2"
   name: "conv4_2"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 512
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv4_2"
   top: "conv4_2"
   name: "relu4_2"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv4_2"
   top: "conv4_3"
   name: "conv4_3"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 512
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv4_3"
   top: "conv4_3"
   name: "relu4_3"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv4_3"
   top: "pool4"
   name: "pool4"
-  type: POOLING
+  type: "Pooling"
   pooling_param {
     pool: MAX
     kernel_size: 2
     stride: 2
   }
 }
-layers {
+layer {
   bottom: "pool4"
   top: "conv5_1"
   name: "conv5_1"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 512
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv5_1"
   top: "conv5_1"
   name: "relu5_1"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv5_1"
   top: "conv5_2"
   name: "conv5_2"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 512
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv5_2"
   top: "conv5_2"
   name: "relu5_2"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv5_2"
   top: "conv5_3"
   name: "conv5_3"
-  type: CONVOLUTION
+  type: "Convolution"
   convolution_param {
     num_output: 512
     pad: 1
     kernel_size: 3
   }
 }
-layers {
+layer {
   bottom: "conv5_3"
   top: "conv5_3"
   name: "relu5_3"
-  type: RELU
+  type: "ReLU"
 }
-layers {
+layer {
   bottom: "conv5_3"
   top: "pool5"
   name: "pool5"
-  type: POOLING
+  type: "Pooling"
   pooling_param {
     pool: MAX
     kernel_size: 2
     stride: 2
   }
 }
-layers {
+layer {
   name: "conv6"
-  type: CONVOLUTION
+  type: "Convolution"
   bottom: "pool5"
   top: "conv6"
   blobs_lr: 1
@@ -340,21 +340,21 @@ layers {
     }
   }
 }
-layers {
+layer {
   name: "flatten6"
-  type: FLATTEN
+  type: "Flatten"
   bottom: "conv6"
   top: "flatten6"
 }
-layers {
+layer {
   name: "sigmoid6"
-  type: SIGMOID
+  type: "Sigmoid"
   bottom: "flatten6"
   top: "sigmoid6"
 }
-layers {
+layer {
   name: "sigmoid6filt"
-  type: ELTWISE
+  type: "Eltwise"
   bottom: "sigmoid6"
   bottom: "filter"
   eltwise_param {
@@ -362,9 +362,9 @@ layers {
   }
   top: "sigmoid6filt"
 }
-layers {
+layer {
   name: "loss"
-  type: EUCLIDEAN_WEIGHTED_LOSS
+  type: "EuclideanWeightedLoss"
   bottom: "sigmoid6filt"
   bottom: "label"
   euclidean_weight_param{
@@ -372,9 +372,9 @@ layers {
   }
   include { phase: TRAIN }
 }
-layers {
+layer {
   name: "accuracy"
-  type: EUCLIDEAN_WEIGHTED_LOSS
+  type: "EuclideanWeightedLoss"
   bottom: "sigmoid6filt"
   bottom: "label"
   euclidean_weight_param{
