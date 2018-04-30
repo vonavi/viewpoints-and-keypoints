@@ -15,25 +15,25 @@
 #include "caffe/data_transformer.hpp"
 #include "caffe/internal_thread.hpp"
 #include "caffe/layers/base_data_layer.hpp"
-#include "caffe/layers/window_data_layer.hpp"
+#include "caffe/layers/window_pose_data_layer.hpp"
 #include "caffe/util/benchmark.hpp"
 #include "caffe/util/io.hpp"
 #include "caffe/util/math_functions.hpp"
 #include "caffe/util/rng.hpp"
 
-// caffe.proto > LayerParameter > WindowDataParameter
+// caffe.proto > LayerParameter > WindowPoseDataParameter
 //   'source' field specifies the window_file
 //   'crop_size' indicates the desired warped size
 
 namespace caffe {
 
 template <typename Dtype>
-WindowDataLayer<Dtype>::~WindowDataLayer<Dtype>() {
+WindowPoseDataLayer<Dtype>::~WindowPoseDataLayer<Dtype>() {
   this->StopInternalThread();
 }
 
 template <typename Dtype>
-void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
+void WindowPoseDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   // LayerSetUp runs through the window_file and creates two structures
   // that hold windows: one for foreground (object) windows and one
@@ -48,7 +48,7 @@ void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
   //    height
   //    width
   //    num_windows
-  //    class_index overlap x1 y1 x2 y2
+  //    class_index overlap x1 y1 x2 y2 e1 e2 e3 e1c e2c e3c
 
   LOG(INFO) << "Window data layer:" << std::endl
       << "  foreground (object) overlap threshold: "
@@ -115,30 +115,43 @@ void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
     const float bg_threshold =
         this->layer_param_.window_data_param().bg_threshold();
     for (int i = 0; i < num_windows; ++i) {
-      int label, x1, y1, x2, y2;
+      int label, x1, y1, x2, y2, e1, e2, e3, e1c, e2c, e3c;
+      int e1m, e2m, e3m, e1cm, e2cm, e3cm;
       float overlap;
-      infile >> label >> overlap >> x1 >> y1 >> x2 >> y2;
+      infile >> label >> overlap >> x1 >> y1 >> x2 >> y2 >> e1 >> e1m >> e2 >> e2m >> e3 >> e3m >> e1c >> e1cm >> e2c >> e2cm >> e3c >> e3cm;
 
-      vector<float> window(WindowDataLayer::NUM);
-      window[WindowDataLayer::IMAGE_INDEX] = image_index;
-      window[WindowDataLayer::LABEL] = label;
-      window[WindowDataLayer::OVERLAP] = overlap;
-      window[WindowDataLayer::X1] = x1;
-      window[WindowDataLayer::Y1] = y1;
-      window[WindowDataLayer::X2] = x2;
-      window[WindowDataLayer::Y2] = y2;
+      vector<float> window(WindowPoseDataLayer::NUM);
+      window[WindowPoseDataLayer::IMAGE_INDEX] = image_index;
+      window[WindowPoseDataLayer::LABEL] = label;
+      window[WindowPoseDataLayer::OVERLAP] = overlap;
+      window[WindowPoseDataLayer::X1] = x1;
+      window[WindowPoseDataLayer::Y1] = y1;
+      window[WindowPoseDataLayer::X2] = x2;
+      window[WindowPoseDataLayer::Y2] = y2;
+      window[WindowPoseDataLayer::E1] = e1;
+      window[WindowPoseDataLayer::E2] = e2;
+      window[WindowPoseDataLayer::E3] = e3;
+      window[WindowPoseDataLayer::E1C] = e1c;
+      window[WindowPoseDataLayer::E2C] = e2c;
+      window[WindowPoseDataLayer::E3C] = e3c;
+      window[WindowPoseDataLayer::E1M] = e1m;
+      window[WindowPoseDataLayer::E2M] = e2m;
+      window[WindowPoseDataLayer::E3M] = e3m;
+      window[WindowPoseDataLayer::E1CM] = e1cm;
+      window[WindowPoseDataLayer::E2CM] = e2cm;
+      window[WindowPoseDataLayer::E3CM] = e3cm;
 
       // add window to foreground list or background list
       if (overlap >= fg_threshold) {
-        int label = window[WindowDataLayer::LABEL];
+        int label = window[WindowPoseDataLayer::LABEL];
         CHECK_GT(label, 0);
         fg_windows_.push_back(window);
         label_hist.insert(std::make_pair(label, 0));
         label_hist[label]++;
       } else if (overlap < bg_threshold) {
         // background window, force label and overlap to 0
-        window[WindowDataLayer::LABEL] = 0;
-        window[WindowDataLayer::OVERLAP] = 0;
+        window[WindowPoseDataLayer::LABEL] = 0;
+        window[WindowPoseDataLayer::OVERLAP] = 0;
         bg_windows_.push_back(window);
         label_hist[0]++;
       }
@@ -186,6 +199,18 @@ void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
   for (int i = 0; i < this->prefetch_.size(); ++i) {
     this->prefetch_[i]->label_.Reshape(label_shape);
   }
+  top[2]->Reshape(label_shape);
+  top[3]->Reshape(label_shape);
+  top[4]->Reshape(label_shape);
+  top[5]->Reshape(label_shape);
+  top[6]->Reshape(label_shape);
+  top[7]->Reshape(label_shape);
+  this->prefetch_e1_.Reshape(label_shape);
+  this->prefetch_e2_.Reshape(label_shape);
+  this->prefetch_e3_.Reshape(label_shape);
+  this->prefetch_e1coarse_.Reshape(label_shape);
+  this->prefetch_e2coarse_.Reshape(label_shape);
+  this->prefetch_e3coarse_.Reshape(label_shape);
 
   // data mean
   has_mean_file_ = this->transform_param_.has_mean_file();
@@ -198,11 +223,12 @@ void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
     ReadProtoFromBinaryFileOrDie(mean_file.c_str(), &blob_proto);
     data_mean_.FromProto(blob_proto);
   }
-  if (has_mean_values_) {
+  float meanVals[3] = {102.98,115.95,122.77};
+  if (1) {
     CHECK(has_mean_file_ == false) <<
       "Cannot specify mean_file and mean_value at the same time";
-    for (int c = 0; c < this->transform_param_.mean_value_size(); ++c) {
-      mean_values_.push_back(this->transform_param_.mean_value(c));
+    for (int c = 0; c < 3; ++c) {
+      mean_values_.push_back(meanVals[c]);
     }
     CHECK(mean_values_.size() == 1 || mean_values_.size() == channels) <<
      "Specify either 1 mean_value or as many as channels: " << channels;
@@ -216,7 +242,7 @@ void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
 }
 
 template <typename Dtype>
-unsigned int WindowDataLayer<Dtype>::PrefetchRand() {
+unsigned int WindowPoseDataLayer<Dtype>::PrefetchRand() {
   CHECK(prefetch_rng_);
   caffe::rng_t* prefetch_rng =
       static_cast<caffe::rng_t*>(prefetch_rng_->generator());
@@ -225,7 +251,7 @@ unsigned int WindowDataLayer<Dtype>::PrefetchRand() {
 
 // This function is called on prefetch thread
 template <typename Dtype>
-void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
+void WindowPoseDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   // At each iteration, sample N windows where N*p are foreground (object)
   // windows and N*(1-p) are background (non-object) windows
   CPUTimer batch_timer;
@@ -235,6 +261,13 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   CPUTimer timer;
   Dtype* top_data = batch->data_.mutable_cpu_data();
   Dtype* top_label = batch->label_.mutable_cpu_data();
+  Dtype* top_e1 = this->prefetch_e1_.mutable_cpu_data();
+  Dtype* top_e2 = this->prefetch_e2_.mutable_cpu_data();
+  Dtype* top_e3 = this->prefetch_e3_.mutable_cpu_data();
+  Dtype* top_e1c = this->prefetch_e1coarse_.mutable_cpu_data();
+  Dtype* top_e2c = this->prefetch_e2coarse_.mutable_cpu_data();
+  Dtype* top_e3c = this->prefetch_e3coarse_.mutable_cpu_data();
+
   const Dtype scale = this->layer_param_.window_data_param().scale();
   const int batch_size = this->layer_param_.window_data_param().batch_size();
   const int context_pad = this->layer_param_.window_data_param().context_pad();
@@ -282,12 +315,12 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
 
       // load the image containing the window
       pair<std::string, vector<int> > image =
-          image_database_[window[WindowDataLayer<Dtype>::IMAGE_INDEX]];
+          image_database_[window[WindowPoseDataLayer<Dtype>::IMAGE_INDEX]];
 
       cv::Mat cv_img;
       if (this->cache_images_) {
         pair<std::string, Datum> image_cached =
-          image_database_cache_[window[WindowDataLayer<Dtype>::IMAGE_INDEX]];
+          image_database_cache_[window[WindowPoseDataLayer<Dtype>::IMAGE_INDEX]];
         cv_img = DecodeDatumToCVMat(image_cached.second, true);
       } else {
         cv_img = cv::imread(image.first, CV_LOAD_IMAGE_COLOR);
@@ -301,10 +334,10 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
       const int channels = cv_img.channels();
 
       // crop window out of image and warp it
-      int x1 = window[WindowDataLayer<Dtype>::X1];
-      int y1 = window[WindowDataLayer<Dtype>::Y1];
-      int x2 = window[WindowDataLayer<Dtype>::X2];
-      int y2 = window[WindowDataLayer<Dtype>::Y2];
+      int x1 = window[WindowPoseDataLayer<Dtype>::X1];
+      int y1 = window[WindowPoseDataLayer<Dtype>::Y1];
+      int x2 = window[WindowPoseDataLayer<Dtype>::X2];
+      int y2 = window[WindowPoseDataLayer<Dtype>::Y2];
 
       int pad_w = 0;
       int pad_h = 0;
@@ -414,7 +447,7 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
                            * mean_width + w + mean_off + pad_w;
               top_data[top_index] = (pixel - mean[mean_index]) * scale;
             } else {
-              if (this->has_mean_values_) {
+              if (1) {
                 top_data[top_index] = (pixel - this->mean_values_[c]) * scale;
               } else {
                 top_data[top_index] = pixel * scale;
@@ -425,7 +458,23 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
       }
       trans_time += timer.MicroSeconds();
       // get window label
-      top_label[item_id] = window[WindowDataLayer<Dtype>::LABEL];
+      top_label[item_id] = window[WindowPoseDataLayer<Dtype>::LABEL];
+      if(do_mirror){
+        top_e1[item_id] = window[WindowPoseDataLayer<Dtype>::E1M];
+        top_e2[item_id] = window[WindowPoseDataLayer<Dtype>::E2M];
+        top_e3[item_id] = window[WindowPoseDataLayer<Dtype>::E3M];
+        top_e1c[item_id] = window[WindowPoseDataLayer<Dtype>::E1CM];
+        top_e2c[item_id] = window[WindowPoseDataLayer<Dtype>::E2CM];
+        top_e3c[item_id] = window[WindowPoseDataLayer<Dtype>::E3CM];
+      }
+      else{
+          top_e1[item_id] = window[WindowPoseDataLayer<Dtype>::E1];
+          top_e2[item_id] = window[WindowPoseDataLayer<Dtype>::E2];
+          top_e3[item_id] = window[WindowPoseDataLayer<Dtype>::E3];
+          top_e1c[item_id] = window[WindowPoseDataLayer<Dtype>::E1C];
+          top_e2c[item_id] = window[WindowPoseDataLayer<Dtype>::E2C];
+          top_e3c[item_id] = window[WindowPoseDataLayer<Dtype>::E3C];
+      }
 
       #if 0
       // useful debugging code for dumping transformed windows to disk
@@ -436,10 +485,10 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
       std::ofstream inf((string("dump/") + file_id +
           string("_info.txt")).c_str(), std::ofstream::out);
       inf << image.first << std::endl
-          << window[WindowDataLayer<Dtype>::X1]+1 << std::endl
-          << window[WindowDataLayer<Dtype>::Y1]+1 << std::endl
-          << window[WindowDataLayer<Dtype>::X2]+1 << std::endl
-          << window[WindowDataLayer<Dtype>::Y2]+1 << std::endl
+          << window[WindowPoseDataLayer<Dtype>::X1]+1 << std::endl
+          << window[WindowPoseDataLayer<Dtype>::Y1]+1 << std::endl
+          << window[WindowPoseDataLayer<Dtype>::X2]+1 << std::endl
+          << window[WindowPoseDataLayer<Dtype>::Y2]+1 << std::endl
           << do_mirror << std::endl
           << top_label[item_id] << std::endl
           << is_fg << std::endl;
@@ -469,8 +518,30 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   DLOG(INFO) << "Transform time: " << trans_time / 1000 << " ms.";
 }
 
-INSTANTIATE_CLASS(WindowDataLayer);
-REGISTER_LAYER_CLASS(WindowData);
+template <typename Dtype>
+void WindowPoseDataLayer<Dtype>::Forward_cpu(
+    const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
+  BasePrefetchingDataLayer<Dtype>::Forward_cpu(bottom, top);
+  // Copy the data
+  caffe_copy(this->prefetch_e1_.count(), this->prefetch_e1_.cpu_data(),
+      top[2]->mutable_cpu_data());
+  caffe_copy(this->prefetch_e2_.count(), this->prefetch_e2_.cpu_data(),
+      top[3]->mutable_cpu_data());
+  caffe_copy(this->prefetch_e3_.count(), this->prefetch_e3_.cpu_data(),
+      top[4]->mutable_cpu_data());
+  caffe_copy(this->prefetch_e1coarse_.count(), this->prefetch_e1coarse_.cpu_data(),
+      top[5]->mutable_cpu_data());
+  caffe_copy(this->prefetch_e2coarse_.count(), this->prefetch_e2coarse_.cpu_data(),
+      top[6]->mutable_cpu_data());
+  caffe_copy(this->prefetch_e3coarse_.count(), this->prefetch_e3coarse_.cpu_data(),
+      top[7]->mutable_cpu_data());
+}
 
+#ifdef CPU_ONLY
+STUB_GPU_FORWARD(WindowPoseDataLayer, Forward);
+#endif
+
+INSTANTIATE_CLASS(WindowPoseDataLayer);
+REGISTER_LAYER_CLASS(WindowPoseData);
 }  // namespace caffe
 #endif  // USE_OPENCV
