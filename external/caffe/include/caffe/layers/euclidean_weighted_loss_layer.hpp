@@ -1,5 +1,5 @@
-#ifndef CAFFE_EUCLIDEAN_LOSS_LAYER_HPP_
-#define CAFFE_EUCLIDEAN_LOSS_LAYER_HPP_
+#ifndef CAFFE_EUCLIDEAN_WEIGHTED_LOSS_LAYER_HPP_
+#define CAFFE_EUCLIDEAN_WEIGHTED_LOSS_LAYER_HPP_
 
 #include <vector>
 
@@ -38,14 +38,14 @@ namespace caffe {
  * linear least squares problems! We use it only as an instructive example.)
  */
 template <typename Dtype>
-class EuclideanLossLayer : public LossLayer<Dtype> {
+class EuclideanWeightedLossLayer : public LossLayer<Dtype> {
  public:
-  explicit EuclideanLossLayer(const LayerParameter& param)
+  explicit EuclideanWeightedLossLayer(const LayerParameter& param)
       : LossLayer<Dtype>(param), diff_() {}
   virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
 
-  virtual inline const char* type() const { return "EuclideanLoss"; }
+  virtual inline const char* type() const { return "EuclideanWeightedLoss"; }
   /**
    * Unlike most loss layers, in the EuclideanLossLayer we can backpropagate
    * to both inputs -- override to return true and always allow force_backward.
@@ -55,10 +55,8 @@ class EuclideanLossLayer : public LossLayer<Dtype> {
   }
 
  protected:
-  /// @copydoc EuclideanLossLayer
+  /// @copydoc EuclideanWeightedLossLayer
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
-      const vector<Blob<Dtype>*>& top);
-  virtual void Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
 
   /**
@@ -96,12 +94,11 @@ class EuclideanLossLayer : public LossLayer<Dtype> {
    */
   virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
-  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
-      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
 
   Blob<Dtype> diff_;
+  Blob<Dtype> diffPos_;
 };
 
 }  // namespace caffe
 
-#endif  // CAFFE_EUCLIDEAN_LOSS_LAYER_HPP_
+#endif  // CAFFE_EUCLIDEAN_WEIGHTED_LOSS_LAYER_HPP_

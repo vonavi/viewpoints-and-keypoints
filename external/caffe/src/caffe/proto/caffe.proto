@@ -308,7 +308,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 147 (last added: recurrent_param)
+// LayerParameter next available layer-specific ID: 148 (last added: euclidean_weight_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -374,6 +374,7 @@ message LayerParameter {
   optional EltwiseParameter eltwise_param = 110;
   optional ELUParameter elu_param = 140;
   optional EmbedParameter embed_param = 137;
+  optional EuclideanWeightedLossParameter euclidean_weight_param = 147;
   optional ExpParameter exp_param = 111;
   optional FlattenParameter flatten_param = 135;
   optional HDF5DataParameter hdf5_data_param = 112;
@@ -729,6 +730,11 @@ message EmbedParameter {
   optional FillerParameter weight_filler = 4; // The filler for the weight
   optional FillerParameter bias_filler = 5; // The filler for the bias
 
+}
+
+// Message that stores parameters used by EuclideanWeightedLossLayer
+message EuclideanWeightedLossParameter {
+  optional float lambda = 1 [default = 100]; //weight to positive examples
 }
 
 // Message that stores parameters used by ExpLayer
