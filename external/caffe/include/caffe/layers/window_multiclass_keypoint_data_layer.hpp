@@ -1,5 +1,5 @@
-#ifndef CAFFE_WINDOW_DATA_LAYER_HPP_
-#define CAFFE_WINDOW_DATA_LAYER_HPP_
+#ifndef CAFFE_WINDOW_MULTICLASS_KEYPOINT_DATA_LAYER_HPP_
+#define CAFFE_WINDOW_MULTICLASS_KEYPOINT_DATA_LAYER_HPP_
 
 #include <string>
 #include <utility>
@@ -22,17 +22,21 @@ namespace caffe {
  * TODO(dox): thorough documentation for Forward and proto params.
  */
 template <typename Dtype>
-class WindowDataLayer : public BasePrefetchingDataLayer<Dtype> {
+class WindowMulticlassKeypointDataLayer : public BasePrefetchingDataLayer<Dtype> {
  public:
-  explicit WindowDataLayer(const LayerParameter& param)
+  explicit WindowMulticlassKeypointDataLayer(const LayerParameter& param)
       : BasePrefetchingDataLayer<Dtype>(param) {}
-  virtual ~WindowDataLayer();
+  virtual ~WindowMulticlassKeypointDataLayer();
   virtual void DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
+  virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
+  virtual void Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      const vector<Blob<Dtype>*>& top);
 
-  virtual inline const char* type() const { return "WindowData"; }
+  virtual inline const char* type() const { return "WindowMulticlassKeypointData"; }
   virtual inline int ExactNumBottomBlobs() const { return 0; }
-  virtual inline int ExactNumTopBlobs() const { return 2; }
+  virtual inline int ExactNumTopBlobs() const { return 3; }
 
  protected:
   virtual unsigned int PrefetchRand();
@@ -40,10 +44,19 @@ class WindowDataLayer : public BasePrefetchingDataLayer<Dtype> {
 
   shared_ptr<Caffe::RNG> prefetch_rng_;
   vector<std::pair<std::string, vector<int> > > image_database_;
-  enum WindowField { IMAGE_INDEX, LABEL, OVERLAP, X1, Y1, X2, Y2, NUM };
+  enum WindowField { IMAGE_INDEX, LABEL, OVERLAP, X1, Y1, X2, Y2, NUMKPS, CSTART, CEND, TOTKPS, NUM };
+
   vector<vector<float> > fg_windows_;
   vector<vector<float> > bg_windows_;
+  vector<vector<int> > fg_windows_kps_;
+  vector<vector<int> > bg_windows_kps_;
+  vector<vector<float> > fg_windows_values_;
+  vector<vector<float> > bg_windows_values_;
+  vector<vector<int> > fg_windows_flipkps_;
+  vector<vector<int> > bg_windows_flipkps_;
+
   Blob<Dtype> data_mean_;
+  Blob<Dtype> prefetch_filter_;
   vector<Dtype> mean_values_;
   bool has_mean_file_;
   bool has_mean_values_;
@@ -53,4 +66,4 @@ class WindowDataLayer : public BasePrefetchingDataLayer<Dtype> {
 
 }  // namespace caffe
 
-#endif  // CAFFE_WINDOW_DATA_LAYER_HPP_
+#endif  // CAFFE_WINDOW_MULTICLASS_KEYPOINT_DATA_LAYER_HPP_

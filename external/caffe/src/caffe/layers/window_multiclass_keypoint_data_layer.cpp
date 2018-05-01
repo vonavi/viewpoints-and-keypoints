@@ -15,25 +15,25 @@
 #include "caffe/data_transformer.hpp"
 #include "caffe/internal_thread.hpp"
 #include "caffe/layers/base_data_layer.hpp"
-#include "caffe/layers/window_data_layer.hpp"
+#include "caffe/layers/window_multiclass_keypoint_data_layer.hpp"
 #include "caffe/util/benchmark.hpp"
 #include "caffe/util/io.hpp"
 #include "caffe/util/math_functions.hpp"
 #include "caffe/util/rng.hpp"
 
-// caffe.proto > LayerParameter > WindowDataParameter
+// caffe.proto > LayerParameter > WindowMulticlassKeypointDataParameter
 //   'source' field specifies the window_file
 //   'crop_size' indicates the desired warped size
 
 namespace caffe {
 
 template <typename Dtype>
-WindowDataLayer<Dtype>::~WindowDataLayer<Dtype>() {
+WindowMulticlassKeypointDataLayer<Dtype>::~WindowMulticlassKeypointDataLayer<Dtype>() {
   this->StopInternalThread();
 }
 
 template <typename Dtype>
-void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
+void WindowMulticlassKeypointDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   // LayerSetUp runs through the window_file and creates two structures
   // that hold windows: one for foreground (object) windows and one
@@ -48,7 +48,7 @@ void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
   //    height
   //    width
   //    num_windows
-  //    class_index overlap x1 y1 x2 y2
+  //    class_index overlap x1 y1 x2 y2 numkps classStart classEnd kp1 flipkp1 kp2 flipkp2 .. kpN flipkpN
 
   LOG(INFO) << "Window data layer:" << std::endl
       << "  foreground (object) overlap threshold: "
@@ -81,6 +81,7 @@ void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
 
   map<int, int> label_hist;
   label_hist.insert(std::make_pair(0, 0));
+  int numTotKps;
 
   string hashtag;
   int image_index, channels;
@@ -95,7 +96,7 @@ void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
     image_path = root_folder + image_path;
     // read image dimensions
     vector<int> image_size(3);
-    infile >> image_size[0] >> image_size[1] >> image_size[2];
+    infile >> image_size[0] >> image_size[1] >> image_size[2] >> numTotKps;
     channels = image_size[0];
     image_database_.push_back(std::make_pair(image_path, image_size));
 
@@ -115,31 +116,46 @@ void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
     const float bg_threshold =
         this->layer_param_.window_data_param().bg_threshold();
     for (int i = 0; i < num_windows; ++i) {
-      int label, x1, y1, x2, y2;
+      int label, x1, y1, x2, y2, numKps, classStart, classEnd;
       float overlap;
-      infile >> label >> overlap >> x1 >> y1 >> x2 >> y2;
-
-      vector<float> window(WindowDataLayer::NUM);
-      window[WindowDataLayer::IMAGE_INDEX] = image_index;
-      window[WindowDataLayer::LABEL] = label;
-      window[WindowDataLayer::OVERLAP] = overlap;
-      window[WindowDataLayer::X1] = x1;
-      window[WindowDataLayer::Y1] = y1;
-      window[WindowDataLayer::X2] = x2;
-      window[WindowDataLayer::Y2] = y2;
+      infile >> label >> overlap >> x1 >> y1 >> x2 >> y2 >> numKps >> classStart >> classEnd;
+      vector<int> window_kps(numKps);
+      vector<float> window_kpsVals(numKps);
+      vector<int> window_flipkps(numKps);
+      for (int j=0;j<numKps;j++){
+        infile >> window_kps[j] >> window_flipkps[j] >> window_kpsVals[j];
+      }
+      vector<float> window(WindowMulticlassKeypointDataLayer::NUM);
+      window[WindowMulticlassKeypointDataLayer::IMAGE_INDEX] = image_index;
+      window[WindowMulticlassKeypointDataLayer::LABEL] = label;
+      window[WindowMulticlassKeypointDataLayer::OVERLAP] = overlap;
+      window[WindowMulticlassKeypointDataLayer::X1] = x1;
+      window[WindowMulticlassKeypointDataLayer::Y1] = y1;
+      window[WindowMulticlassKeypointDataLayer::X2] = x2;
+      window[WindowMulticlassKeypointDataLayer::Y2] = y2;
+      window[WindowMulticlassKeypointDataLayer::NUMKPS] = numKps;
+      window[WindowMulticlassKeypointDataLayer::CSTART] = classStart;
+      window[WindowMulticlassKeypointDataLayer::CEND] = classEnd;
+      window[WindowMulticlassKeypointDataLayer::TOTKPS] = numTotKps;
 
       // add window to foreground list or background list
       if (overlap >= fg_threshold) {
-        int label = window[WindowDataLayer::LABEL];
+        int label = window[WindowMulticlassKeypointDataLayer::LABEL];
         CHECK_GT(label, 0);
         fg_windows_.push_back(window);
+        fg_windows_values_.push_back(window_kpsVals);
+        fg_windows_kps_.push_back(window_kps);
+        fg_windows_flipkps_.push_back(window_flipkps);
         label_hist.insert(std::make_pair(label, 0));
         label_hist[label]++;
       } else if (overlap < bg_threshold) {
         // background window, force label and overlap to 0
-        window[WindowDataLayer::LABEL] = 0;
-        window[WindowDataLayer::OVERLAP] = 0;
+        window[WindowMulticlassKeypointDataLayer::LABEL] = 0;
+        window[WindowMulticlassKeypointDataLayer::OVERLAP] = 0;
         bg_windows_.push_back(window);
+        bg_windows_kps_.push_back(window_kps);
+        bg_windows_flipkps_.push_back(window_flipkps);
+        bg_windows_values_.push_back(window_kpsVals);
         label_hist[0]++;
       }
     }
@@ -181,11 +197,15 @@ void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       << top[0]->channels() << "," << top[0]->height() << ","
       << top[0]->width();
   // label
-  vector<int> label_shape(1, batch_size);
+  vector<int> label_shape(2);
+  label_shape[0] = batch_size;
+  label_shape[1] = numTotKps;
   top[1]->Reshape(label_shape);
   for (int i = 0; i < this->prefetch_.size(); ++i) {
     this->prefetch_[i]->label_.Reshape(label_shape);
   }
+  top[2]->Reshape(label_shape);
+  this->prefetch_filter_.Reshape(label_shape);
 
   // data mean
   has_mean_file_ = this->transform_param_.has_mean_file();
@@ -198,11 +218,12 @@ void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
     ReadProtoFromBinaryFileOrDie(mean_file.c_str(), &blob_proto);
     data_mean_.FromProto(blob_proto);
   }
-  if (has_mean_values_) {
+  float meanVals[3] = {102.98,115.95,122.77};
+  if (1) {
     CHECK(has_mean_file_ == false) <<
       "Cannot specify mean_file and mean_value at the same time";
-    for (int c = 0; c < this->transform_param_.mean_value_size(); ++c) {
-      mean_values_.push_back(this->transform_param_.mean_value(c));
+    for (int c = 0; c < 3; ++c) {
+      mean_values_.push_back(meanVals[c]);
     }
     CHECK(mean_values_.size() == 1 || mean_values_.size() == channels) <<
      "Specify either 1 mean_value or as many as channels: " << channels;
@@ -216,7 +237,7 @@ void WindowDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
 }
 
 template <typename Dtype>
-unsigned int WindowDataLayer<Dtype>::PrefetchRand() {
+unsigned int WindowMulticlassKeypointDataLayer<Dtype>::PrefetchRand() {
   CHECK(prefetch_rng_);
   caffe::rng_t* prefetch_rng =
       static_cast<caffe::rng_t*>(prefetch_rng_->generator());
@@ -225,7 +246,7 @@ unsigned int WindowDataLayer<Dtype>::PrefetchRand() {
 
 // This function is called on prefetch thread
 template <typename Dtype>
-void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
+void WindowMulticlassKeypointDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   // At each iteration, sample N windows where N*p are foreground (object)
   // windows and N*(1-p) are background (non-object) windows
   CPUTimer batch_timer;
@@ -235,6 +256,8 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   CPUTimer timer;
   Dtype* top_data = batch->data_.mutable_cpu_data();
   Dtype* top_label = batch->label_.mutable_cpu_data();
+  Dtype* top_filter = this->prefetch_filter_.mutable_cpu_data();
+
   const Dtype scale = this->layer_param_.window_data_param().scale();
   const int batch_size = this->layer_param_.window_data_param().batch_size();
   const int context_pad = this->layer_param_.window_data_param().context_pad();
@@ -259,6 +282,8 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
 
   // zero out batch
   caffe_set(batch->data_.count(), Dtype(0), top_data);
+  caffe_set(batch->label_.count(), Dtype(0), top_label);
+  caffe_set(this->prefetch_filter_.count(), Dtype(0), top_filter);
 
   const int num_fg = static_cast<int>(static_cast<float>(batch_size)
       * fg_fraction);
@@ -278,16 +303,30 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
           fg_windows_[rand_index % fg_windows_.size()] :
           bg_windows_[rand_index % bg_windows_.size()];
 
+      vector<int> window_kps = (is_fg) ?
+        fg_windows_kps_[rand_index % fg_windows_.size()] :
+        bg_windows_kps_[rand_index % bg_windows_.size()];
+
+      vector<float> window_kpsVals = (is_fg) ?
+            fg_windows_values_[rand_index % fg_windows_.size()] :
+            bg_windows_values_[rand_index % bg_windows_.size()];
+
       bool do_mirror = mirror && PrefetchRand() % 2;
+
+      if(do_mirror){
+        window_kps = (is_fg) ?
+            fg_windows_flipkps_[rand_index % fg_windows_.size()]:
+            bg_windows_flipkps_[rand_index % bg_windows_.size()];
+      }
 
       // load the image containing the window
       pair<std::string, vector<int> > image =
-          image_database_[window[WindowDataLayer<Dtype>::IMAGE_INDEX]];
+          image_database_[window[WindowMulticlassKeypointDataLayer<Dtype>::IMAGE_INDEX]];
 
       cv::Mat cv_img;
       if (this->cache_images_) {
         pair<std::string, Datum> image_cached =
-          image_database_cache_[window[WindowDataLayer<Dtype>::IMAGE_INDEX]];
+          image_database_cache_[window[WindowMulticlassKeypointDataLayer<Dtype>::IMAGE_INDEX]];
         cv_img = DecodeDatumToCVMat(image_cached.second, true);
       } else {
         cv_img = cv::imread(image.first, CV_LOAD_IMAGE_COLOR);
@@ -301,10 +340,14 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
       const int channels = cv_img.channels();
 
       // crop window out of image and warp it
-      int x1 = window[WindowDataLayer<Dtype>::X1];
-      int y1 = window[WindowDataLayer<Dtype>::Y1];
-      int x2 = window[WindowDataLayer<Dtype>::X2];
-      int y2 = window[WindowDataLayer<Dtype>::Y2];
+      int x1 = window[WindowMulticlassKeypointDataLayer<Dtype>::X1];
+      int y1 = window[WindowMulticlassKeypointDataLayer<Dtype>::Y1];
+      int x2 = window[WindowMulticlassKeypointDataLayer<Dtype>::X2];
+      int y2 = window[WindowMulticlassKeypointDataLayer<Dtype>::Y2];
+      int numKps = window[WindowMulticlassKeypointDataLayer<Dtype>::NUMKPS];
+      int classStart = window[WindowMulticlassKeypointDataLayer<Dtype>::CSTART];
+      int classEnd = window[WindowMulticlassKeypointDataLayer<Dtype>::CEND];
+      int numTotKps = window[WindowMulticlassKeypointDataLayer<Dtype>::TOTKPS];
 
       int pad_w = 0;
       int pad_h = 0;
@@ -414,7 +457,7 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
                            * mean_width + w + mean_off + pad_w;
               top_data[top_index] = (pixel - mean[mean_index]) * scale;
             } else {
-              if (this->has_mean_values_) {
+              if (1) {
                 top_data[top_index] = (pixel - this->mean_values_[c]) * scale;
               } else {
                 top_data[top_index] = pixel * scale;
@@ -425,7 +468,12 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
       }
       trans_time += timer.MicroSeconds();
       // get window label
-      top_label[item_id] = window[WindowDataLayer<Dtype>::LABEL];
+      for (int j=0;j<numKps;j++){
+        top_label[item_id*numTotKps + window_kps[j]]=Dtype(window_kpsVals[j]);
+      }
+      for (int j=classStart;j<=classEnd;j++){
+            top_filter[item_id*numTotKps + j]=Dtype(1);
+      }
 
       #if 0
       // useful debugging code for dumping transformed windows to disk
@@ -436,10 +484,10 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
       std::ofstream inf((string("dump/") + file_id +
           string("_info.txt")).c_str(), std::ofstream::out);
       inf << image.first << std::endl
-          << window[WindowDataLayer<Dtype>::X1]+1 << std::endl
-          << window[WindowDataLayer<Dtype>::Y1]+1 << std::endl
-          << window[WindowDataLayer<Dtype>::X2]+1 << std::endl
-          << window[WindowDataLayer<Dtype>::Y2]+1 << std::endl
+          << window[WindowMulticlassKeypointDataLayer<Dtype>::X1]+1 << std::endl
+          << window[WindowMulticlassKeypointDataLayer<Dtype>::Y1]+1 << std::endl
+          << window[WindowMulticlassKeypointDataLayer<Dtype>::X2]+1 << std::endl
+          << window[WindowMulticlassKeypointDataLayer<Dtype>::Y2]+1 << std::endl
           << do_mirror << std::endl
           << top_label[item_id] << std::endl
           << is_fg << std::endl;
@@ -469,8 +517,26 @@ void WindowDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   DLOG(INFO) << "Transform time: " << trans_time / 1000 << " ms.";
 }
 
-INSTANTIATE_CLASS(WindowDataLayer);
-REGISTER_LAYER_CLASS(WindowData);
+template <typename Dtype>
+void WindowMulticlassKeypointDataLayer<Dtype>::Forward_cpu(
+    const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
+  BasePrefetchingDataLayer<Dtype>::Forward_cpu(bottom, top);
+  // Copy the data
+  caffe_copy(this->prefetch_filter_.count(), this->prefetch_filter_.cpu_data(),
+      top[2]->mutable_cpu_data());
+  //float sumFilt = 0;
+  //for (int i=0;i<this->prefetch_filter_.count();++i){
+  //    sumFilt+=this->prefetch_filter_.cpu_data()[i];
+  //}
+  //LOG(INFO)<<sumFilt<<'\n';
+}
+
+#ifdef CPU_ONLY
+STUB_GPU_FORWARD(WindowMulticlassKeypointDataLayer, Forward);
+#endif
+
+INSTANTIATE_CLASS(WindowMulticlassKeypointDataLayer);
+REGISTER_LAYER_CLASS(WindowMulticlassKeypointData);
 
 }  // namespace caffe
 #endif  // USE_OPENCV
