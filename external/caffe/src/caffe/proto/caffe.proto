@@ -308,7 +308,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 148 (last added: euclidean_weight_param)
+// LayerParameter next available layer-specific ID: 149 (last added: mask_outputs_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -386,6 +386,7 @@ message LayerParameter {
   optional InputParameter input_param = 143;
   optional LogParameter log_param = 134;
   optional LRNParameter lrn_param = 118;
+  optional MaskOutputsParameter mask_outputs_param = 148;
   optional MemoryDataParameter memory_data_param = 119;
   optional MVNParameter mvn_param = 120;
   optional ParameterParameter parameter_param = 145;
@@ -876,6 +877,11 @@ message LRNParameter {
     CUDNN = 2;
   }
   optional Engine engine = 6 [default = DEFAULT];
+}
+
+// Message that stores parameters used by MaskOutputsLayer
+message MaskOutputsParameter {
+  optional uint32 kernel_size = 1; // The kernel size
 }
 
 message MemoryDataParameter {
