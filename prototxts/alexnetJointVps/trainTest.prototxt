@@ -10,20 +10,22 @@ layer {
   top: "e1coarse"
   top: "e2coarse"
   top: "e3coarse"
+  include {
+    phase: TRAIN
+  }
+  transform_param {
+    mirror: true
+    crop_size: 224
+  }
   window_data_param {
     source: "/work5/shubhtuls/cachedir/codeRelease/vpsKps/rcnnFinetuneVps/binnedJoint/Train.txt"
     batch_size: 40
     fg_threshold: 0.5
     bg_threshold: 0.5
-    fg_fraction: 1.0
+    fg_fraction: 1
     context_pad: 16
     crop_mode: "warp"
-    }
-  transform_param {
-        mirror: true
-        crop_size: 224
   }
-  include { phase: TRAIN }
 }
 layer {
   name: "data"
@@ -36,20 +38,22 @@ layer {
   top: "e1coarse"
   top: "e2coarse"
   top: "e3coarse"
+  include {
+    phase: TEST
+  }
+  transform_param {
+    mirror: false
+    crop_size: 224
+  }
   window_data_param {
     source: "/work5/shubhtuls/cachedir/codeRelease/vpsKps/rcnnFinetuneVps/binnedJoint/Val.txt"
     batch_size: 40
     fg_threshold: 0.5
     bg_threshold: 0.5
-    fg_fraction: 1.0
+    fg_fraction: 1
     context_pad: 16
     crop_mode: "warp"
   }
-  transform_param {
-        mirror: false
-        crop_size: 224
-  }
-  include { phase: TEST }
 }
 layer {
   name: "conv1"
@@ -606,7 +610,9 @@ layer {
   bottom: "pred_e1"
   bottom: "e1"
   top: "accuracy1"
-  include { phase: TEST }
+  include {
+    phase: TEST
+  }
 }
 layer {
   name: "accuracy2"
@@ -614,7 +620,9 @@ layer {
   bottom: "pred_e2"
   bottom: "e2"
   top: "accuracy2"
-  include { phase: TEST }
+  include {
+    phase: TEST
+  }
 }
 layer {
   name: "accuracy3"
@@ -622,7 +630,9 @@ layer {
   bottom: "pred_e3"
   bottom: "e3"
   top: "accuracy3"
-  include { phase: TEST }
+  include {
+    phase: TEST
+  }
 }
 layer {
   name: "accuracy1c"
@@ -630,7 +640,9 @@ layer {
   bottom: "pred_e1coarse"
   bottom: "e1coarse"
   top: "accuracy1c"
-  include { phase: TEST }
+  include {
+    phase: TEST
+  }
 }
 layer {
   name: "accuracy2c"
@@ -638,7 +650,9 @@ layer {
   bottom: "pred_e2coarse"
   bottom: "e2coarse"
   top: "accuracy2c"
-  include { phase: TEST }
+  include {
+    phase: TEST
+  }
 }
 layer {
   name: "accuracy3c"
@@ -646,5 +660,7 @@ layer {
   bottom: "pred_e3coarse"
   bottom: "e3coarse"
   top: "accuracy3c"
-  include { phase: TEST }
+  include {
+    phase: TEST
+  }
 }
