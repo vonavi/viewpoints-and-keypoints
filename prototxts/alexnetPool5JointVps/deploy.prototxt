@@ -1,14 +1,24 @@
 name: "CaffeNet"
-input: "data"
-input_dim: 20
-input_dim: 3
-input_dim: 224
-input_dim: 224
-input: "label"
-input_dim: 20
-input_dim: 1
-input_dim: 1
-input_dim: 1
+layer {
+  name: "input"
+  type: "Input"
+  top: "data"
+  top: "label"
+  input_param {
+    shape {
+      dim: 20
+      dim: 3
+      dim: 224
+      dim: 224
+    }
+    shape {
+      dim: 20
+      dim: 1
+      dim: 1
+      dim: 1
+    }
+  }
+}
 layer {
   name: "conv1"
   type: "Convolution"
