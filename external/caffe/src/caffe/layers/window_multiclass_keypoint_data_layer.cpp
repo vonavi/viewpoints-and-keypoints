@@ -291,7 +291,7 @@ void WindowMulticlassKeypointDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
 
   int item_id = 0;
   CHECK_GT(fg_windows_.size(), 0);
-  CHECK_GT(bg_windows_.size(), 0);
+  // CHECK_GT(bg_windows_.size(), 0);
 
   // sample from bg set then fg set
   for (int is_fg = 0; is_fg < 2; ++is_fg) {
