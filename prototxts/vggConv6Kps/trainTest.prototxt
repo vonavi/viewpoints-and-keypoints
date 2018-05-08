@@ -13,7 +13,7 @@ layer {
     crop_size: 192
   }
   window_data_param {
-    source: "/data1/shubhtuls/code/ViewpointsAndKeypoints/cachedir/rcnnFinetuneKps/TrainOccluded6.txt"
+    source: "/home/vonavi/repos/viewpoints-and-keypoints/cachedir/rcnnFinetuneKps/TrainOccluded6.txt"
     batch_size: 30
     fg_threshold: 0.5
     bg_threshold: 0.5
@@ -36,7 +36,7 @@ layer {
     crop_size: 192
   }
   window_data_param {
-    source: "/data1/shubhtuls/code/ViewpointsAndKeypoints/cachedir/rcnnFinetuneKps/ValOccluded6.txt"
+    source: "/home/vonavi/repos/viewpoints-and-keypoints/cachedir/rcnnFinetuneKps/ValOccluded6.txt"
     batch_size: 30
     fg_threshold: 0.5
     bg_threshold: 0.5

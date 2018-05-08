@@ -18,7 +18,7 @@ layer {
     crop_size: 224
   }
   window_data_param {
-    source: "/work5/shubhtuls/cachedir/codeRelease/vpsKps/rcnnFinetuneVps/binnedJoint/Train.txt"
+    source: "/home/vonavi/repos/viewpoints-and-keypoints/cachedir/rcnnFinetuneVps/binnedJoint/Train.txt"
     batch_size: 40
     fg_threshold: 0.5
     bg_threshold: 0.5
@@ -46,7 +46,7 @@ layer {
     crop_size: 224
   }
   window_data_param {
-    source: "/work5/shubhtuls/cachedir/codeRelease/vpsKps/rcnnFinetuneVps/binnedJoint/Val.txt"
+    source: "/home/vonavi/repos/viewpoints-and-keypoints/cachedir/rcnnFinetuneVps/binnedJoint/Val.txt"
     batch_size: 40
     fg_threshold: 0.5
     bg_threshold: 0.5

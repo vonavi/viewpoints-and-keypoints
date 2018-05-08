@@ -1,4 +1,4 @@
-net: "/work5/shubhtuls/prototxts/codeRelease/vpsKps/vggConv6Kps/trainTest.prototxt"
+net: "/home/vonavi/repos/viewpoints-and-keypoints/prototxts/vggConv6Kps/trainTest.prototxt"
 test_iter: 100
 test_interval: 1000
 base_lr: 0.00003
@@ -10,4 +10,4 @@ max_iter: 70000
 momentum: 0.9
 weight_decay: 0.0005
 snapshot: 5000
-snapshot_prefix: "/work5/shubhtuls/snapshots/codeRelease/vpsKps/vggConv6Kps"
+snapshot_prefix: "/home/vonavi/repos/viewpoints-and-keypoints/cachedir/snapshots/vggConv6Kps"

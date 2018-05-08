@@ -1,0 +1,8 @@
+# Remove these lines if another location of snapshots is used.
+/cachedir/*
+!/cachedir/snapshots/
+/cachedir/snapshots/*
+!/cachedir/snapshots/.gitkeep
+
+# Ignore image data
+/data/

@@ -1,4 +1,4 @@
-net: "/work5/shubhtuls/prototxts/codeRelease/vpsKps/alexnetFc7JointVps/trainTest.prototxt"
+net: "/home/vonavi/repos/viewpoints-and-keypoints/prototxts/alexnetFc7JointVps/trainTest.prototxt"
 test_iter: 100
 test_interval: 1000
 base_lr: 0.001
@@ -10,4 +10,4 @@ max_iter: 70000
 momentum: 0.9
 weight_decay: 0.0005
 snapshot: 10000
-snapshot_prefix: "/work5/shubhtuls/snapshots/codeRelease/vpsKps/alexnetFc7JointVps"
+snapshot_prefix: "/home/vonavi/repos/viewpoints-and-keypoints/cachedir/snapshots/alexnetFc7JointVps"
