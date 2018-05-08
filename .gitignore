@@ -6,3 +6,5 @@
 
 # Ignore image data
 /data/
+
+__pycache__/
