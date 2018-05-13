@@ -1,6 +1,5 @@
 import os
 
-import configparser
 from ftplib import FTP
 import math
 import zipfile
@@ -14,6 +13,8 @@ DATA_PATH = os.path.join(LIB_PATH, '..', 'data')
 CACHE_PATH = os.path.join(LIB_PATH, '..', 'cachedir')
 
 class ConvertPascalTrain(luigi.Task):
+    cls = luigi.Parameter()
+
     def output(self):
         return luigi.LocalTarget(os.path.join(CACHE_PATH, 'pascalTrain.npy'))
 
@@ -21,16 +22,14 @@ class ConvertPascalTrain(luigi.Task):
         return UnzipPascal3d()
 
     def run(self):
-        config = configparser.ConfigParser()
-        config.read(os.path.join(LIB_PATH, 'config.ini'))
-        cls = config['default']['class']
-
         imgset = pascal3d.convert_set(
-            self.input().path, cls, 'pascal', 'train'
+            self.input().path, self.cls, 'pascal', 'train'
         )
         np.save(self.output().path, imgset)
 
 class ConvertPascalVal(luigi.Task):
+    cls = luigi.Parameter()
+
     def output(self):
         return luigi.LocalTarget(os.path.join(CACHE_PATH, 'pascalVal.npy'))
 
@@ -38,16 +37,14 @@ class ConvertPascalVal(luigi.Task):
         return UnzipPascal3d()
 
     def run(self):
-        config = configparser.ConfigParser()
-        config.read(os.path.join(LIB_PATH, 'config.ini'))
-        cls = config['default']['class']
-
         imgset = pascal3d.convert_set(
-            self.input().path, cls, 'pascal', 'val'
+            self.input().path, self.cls, 'pascal', 'val'
         )
         np.save(self.output().path, imgset)
 
 class ConvertImagenetTrain(luigi.Task):
+    cls = luigi.Parameter()
+
     def output(self):
         return luigi.LocalTarget(os.path.join(CACHE_PATH, 'imagenetTrain.npy'))
 
@@ -55,16 +52,14 @@ class ConvertImagenetTrain(luigi.Task):
         return UnzipPascal3d()
 
     def run(self):
-        config = configparser.ConfigParser()
-        config.read(os.path.join(LIB_PATH, 'config.ini'))
-        cls = config['default']['class']
-
         imgset = pascal3d.convert_set(
-            self.input().path, cls, 'imagenet', 'train'
+            self.input().path, self.cls, 'imagenet', 'train'
         )
         np.save(self.output().path, imgset)
 
 class ConvertImagenetVal(luigi.Task):
+    cls = luigi.Parameter()
+
     def output(self):
         return luigi.LocalTarget(os.path.join(CACHE_PATH, 'imagenetVal.npy'))
 
@@ -72,12 +67,8 @@ class ConvertImagenetVal(luigi.Task):
         return UnzipPascal3d()
 
     def run(self):
-        config = configparser.ConfigParser()
-        config.read(os.path.join(LIB_PATH, 'config.ini'))
-        cls = config['default']['class']
-
         imgset = pascal3d.convert_set(
-            self.input().path, cls, 'imagenet', 'val'
+            self.input().path, self.cls, 'imagenet', 'val'
         )
         np.save(self.output().path, imgset)
 
