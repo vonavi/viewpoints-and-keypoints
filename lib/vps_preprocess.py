@@ -12,6 +12,60 @@ LIB_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_PATH = os.path.join(LIB_PATH, '..', 'data')
 CACHE_PATH = os.path.join(LIB_PATH, '..', 'cachedir')
 
+class CollectTrainData(luigi.Task):
+    cls = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(
+            os.path.join(CACHE_PATH, 'vps_binned_joint', 'train.txt')
+        )
+
+    def requires(self):
+        return [UnzipPascal3d(), ConvertPascalTrain(self.cls),
+                ConvertImagenetTrain(self.cls)]
+
+    def run(self):
+        pascal3d_root = self.input()[0].path
+        count = 0
+
+        with self.output().open('w') as f:
+            for (task, dataset) in zip(self.input()[1:], ['pascal', 'imagenet']):
+                for imgid in list(np.load(task.path)):
+                    f.write('# {}\n'.format(count))
+                    annot = pascal3d.Annotations(
+                        root=pascal3d_root, cls=self.cls, dataset=dataset,
+                        imgid=imgid
+                    )
+                    f.write(annot.tolines())
+                    count += 1
+
+class CollectValData(luigi.Task):
+    cls = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(
+            os.path.join(CACHE_PATH, 'vps_binned_joint', 'val.txt')
+        )
+
+    def requires(self):
+        return [UnzipPascal3d(), ConvertPascalVal(self.cls),
+                ConvertImagenetVal(self.cls)]
+
+    def run(self):
+        pascal3d_root = self.input()[0].path
+        count = 0
+
+        with self.output().open('w') as f:
+            for (task, dataset) in zip(self.input()[1:], ['pascal', 'imagenet']):
+                for imgid in list(np.load(task.path)):
+                    f.write('# {}\n'.format(count))
+                    annot = pascal3d.Annotations(
+                        root=pascal3d_root, cls=self.cls, dataset=dataset,
+                        imgid=imgid
+                    )
+                    f.write(annot.tolines())
+                    count += 1
+
 class ConvertPascalTrain(luigi.Task):
     cls = luigi.Parameter()
 
@@ -94,8 +148,7 @@ class DownloadPascal3d(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget(
-            os.path.join(DATA_PATH, DownloadPascal3d.filename),
-            format=luigi.format.Nop
+            os.path.join(DATA_PATH, self.filename), format=luigi.format.Nop
         )
 
     def run(self):
@@ -104,7 +157,7 @@ class DownloadPascal3d(luigi.Task):
         ftp.cwd('cs/cvgl')
 
         ftp.voidcmd('TYPE I')
-        conn, total_size = ftp.ntransfercmd('RETR ' + DownloadPascal3d.filename)
+        conn, total_size = ftp.ntransfercmd('RETR ' + self.filename)
         out_file = self.output().open('w')
         size_written = 0
 
