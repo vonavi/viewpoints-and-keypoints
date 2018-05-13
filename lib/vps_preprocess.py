@@ -16,7 +16,8 @@ class ConvertPascalTrain(luigi.Task):
     cls = luigi.Parameter()
 
     def output(self):
-        return luigi.LocalTarget(os.path.join(CACHE_PATH, 'pascalTrain.npy'))
+        setname = 'pascal_{}_train.npy'.format(self.cls)
+        return luigi.LocalTarget(os.path.join(CACHE_PATH, setname))
 
     def requires(self):
         return UnzipPascal3d()
@@ -31,7 +32,8 @@ class ConvertPascalVal(luigi.Task):
     cls = luigi.Parameter()
 
     def output(self):
-        return luigi.LocalTarget(os.path.join(CACHE_PATH, 'pascalVal.npy'))
+        setname = 'pascal_{}_val.npy'.format(self.cls)
+        return luigi.LocalTarget(os.path.join(CACHE_PATH, setname))
 
     def requires(self):
         return UnzipPascal3d()
@@ -46,7 +48,8 @@ class ConvertImagenetTrain(luigi.Task):
     cls = luigi.Parameter()
 
     def output(self):
-        return luigi.LocalTarget(os.path.join(CACHE_PATH, 'imagenetTrain.npy'))
+        setname = 'imagenet_{}_train.npy'.format(self.cls)
+        return luigi.LocalTarget(os.path.join(CACHE_PATH, setname))
 
     def requires(self):
         return UnzipPascal3d()
@@ -61,7 +64,8 @@ class ConvertImagenetVal(luigi.Task):
     cls = luigi.Parameter()
 
     def output(self):
-        return luigi.LocalTarget(os.path.join(CACHE_PATH, 'imagenetVal.npy'))
+        setname = 'imagenet_{}_val.npy'.format(self.cls)
+        return luigi.LocalTarget(os.path.join(CACHE_PATH, setname))
 
     def requires(self):
         return UnzipPascal3d()
