@@ -2,10 +2,9 @@
 #include <opencv2/highgui/highgui_c.h>
 #include <stdint.h>
 
-#include <algorithm>
+#include <boost/thread.hpp>
 #include <map>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "opencv2/core/core.hpp"
@@ -28,8 +27,53 @@
 namespace caffe {
 
 template <typename Dtype>
+WindowMulticlassKeypointDataLayer<Dtype>::WindowMulticlassKeypointDataLayer(
+    const LayerParameter& param)
+    : BaseDataLayer<Dtype>(param),
+      prefetch_(param.data_param().prefetch()),
+      prefetch_free_(), prefetch_full_(), prefetch_current_() {
+  for (int i = 0; i < prefetch_.size(); ++i) {
+    prefetch_[i].reset(new MulticlassKeypointBatch<Dtype>());
+    prefetch_free_.push(prefetch_[i].get());
+  }
+}
+
+template <typename Dtype>
 WindowMulticlassKeypointDataLayer<Dtype>::~WindowMulticlassKeypointDataLayer<Dtype>() {
   this->StopInternalThread();
+}
+
+template <typename Dtype>
+void WindowMulticlassKeypointDataLayer<Dtype>::LayerSetUp(
+    const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
+  BaseDataLayer<Dtype>::LayerSetUp(bottom, top);
+
+  // Before starting the prefetch thread, we make cpu_data and gpu_data
+  // calls so that the prefetch thread does not accidentally make simultaneous
+  // cudaMalloc calls when the main thread is running. In some GPUs this
+  // seems to cause failures if we do not so.
+  for (int i = 0; i < prefetch_.size(); ++i) {
+    prefetch_[i]->data_.mutable_cpu_data();
+    if (this->output_labels_) {
+      prefetch_[i]->label_.mutable_cpu_data();
+      prefetch_[i]->filter_.mutable_cpu_data();
+    }
+  }
+#ifndef CPU_ONLY
+  if (Caffe::mode() == Caffe::GPU) {
+    for (int i = 0; i < prefetch_.size(); ++i) {
+      prefetch_[i]->data_.mutable_gpu_data();
+      if (this->output_labels_) {
+        prefetch_[i]->label_.mutable_gpu_data();
+        prefetch_[i]->filter_.mutable_gpu_data();
+      }
+    }
+  }
+#endif
+  DLOG(INFO) << "Initializing prefetch";
+  this->data_transformer_->InitRand();
+  StartInternalThread();
+  DLOG(INFO) << "Prefetch initialized.";
 }
 
 template <typename Dtype>
@@ -201,11 +245,11 @@ void WindowMulticlassKeypointDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<
   label_shape[0] = batch_size;
   label_shape[1] = numTotKps;
   top[1]->Reshape(label_shape);
+  top[2]->Reshape(label_shape);
   for (int i = 0; i < this->prefetch_.size(); ++i) {
     this->prefetch_[i]->label_.Reshape(label_shape);
+    this->prefetch_[i]->filter_.Reshape(label_shape);
   }
-  top[2]->Reshape(label_shape);
-  this->prefetch_filter_.Reshape(label_shape);
 
   // data mean
   has_mean_file_ = this->transform_param_.has_mean_file();
@@ -237,6 +281,41 @@ void WindowMulticlassKeypointDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<
 }
 
 template <typename Dtype>
+void WindowMulticlassKeypointDataLayer<Dtype>::InternalThreadEntry() {
+#ifndef CPU_ONLY
+  cudaStream_t stream;
+  if (Caffe::mode() == Caffe::GPU) {
+    CUDA_CHECK(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
+  }
+#endif
+
+  try {
+    while (!must_stop()) {
+      MulticlassKeypointBatch<Dtype>* batch = prefetch_free_.pop();
+      load_batch(batch);
+#ifndef CPU_ONLY
+      if (Caffe::mode() == Caffe::GPU) {
+        batch->data_.data().get()->async_gpu_push(stream);
+        if (this->output_labels_) {
+          batch->label_.data().get()->async_gpu_push(stream);
+          batch->filter_.data().get()->async_gpu_push(stream);
+        }
+        CUDA_CHECK(cudaStreamSynchronize(stream));
+      }
+#endif
+      prefetch_full_.push(batch);
+    }
+  } catch (boost::thread_interrupted&) {
+    // Interrupted exception is expected on shutdown
+  }
+#ifndef CPU_ONLY
+  if (Caffe::mode() == Caffe::GPU) {
+    CUDA_CHECK(cudaStreamDestroy(stream));
+  }
+#endif
+}
+
+template <typename Dtype>
 unsigned int WindowMulticlassKeypointDataLayer<Dtype>::PrefetchRand() {
   CHECK(prefetch_rng_);
   caffe::rng_t* prefetch_rng =
@@ -246,7 +325,7 @@ unsigned int WindowMulticlassKeypointDataLayer<Dtype>::PrefetchRand() {
 
 // This function is called on prefetch thread
 template <typename Dtype>
-void WindowMulticlassKeypointDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
+void WindowMulticlassKeypointDataLayer<Dtype>::load_batch(MulticlassKeypointBatch<Dtype>* batch) {
   // At each iteration, sample N windows where N*p are foreground (object)
   // windows and N*(1-p) are background (non-object) windows
   CPUTimer batch_timer;
@@ -256,7 +335,7 @@ void WindowMulticlassKeypointDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   CPUTimer timer;
   Dtype* top_data = batch->data_.mutable_cpu_data();
   Dtype* top_label = batch->label_.mutable_cpu_data();
-  Dtype* top_filter = this->prefetch_filter_.mutable_cpu_data();
+  Dtype* top_filter = batch->filter_.mutable_cpu_data();
 
   const Dtype scale = this->layer_param_.window_data_param().scale();
   const int batch_size = this->layer_param_.window_data_param().batch_size();
@@ -283,7 +362,7 @@ void WindowMulticlassKeypointDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   // zero out batch
   caffe_set(batch->data_.count(), Dtype(0), top_data);
   caffe_set(batch->label_.count(), Dtype(0), top_label);
-  caffe_set(this->prefetch_filter_.count(), Dtype(0), top_filter);
+  caffe_set(batch->filter_.count(), Dtype(0), top_filter);
 
   const int num_fg = static_cast<int>(static_cast<float>(batch_size)
       * fg_fraction);
@@ -520,15 +599,21 @@ void WindowMulticlassKeypointDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
 template <typename Dtype>
 void WindowMulticlassKeypointDataLayer<Dtype>::Forward_cpu(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
-  BasePrefetchingDataLayer<Dtype>::Forward_cpu(bottom, top);
-  // Copy the data
-  caffe_copy(this->prefetch_filter_.count(), this->prefetch_filter_.cpu_data(),
-      top[2]->mutable_cpu_data());
-  //float sumFilt = 0;
-  //for (int i=0;i<this->prefetch_filter_.count();++i){
-  //    sumFilt+=this->prefetch_filter_.cpu_data()[i];
-  //}
-  //LOG(INFO)<<sumFilt<<'\n';
+  if (prefetch_current_) {
+    prefetch_free_.push(prefetch_current_);
+  }
+  prefetch_current_ = prefetch_full_.pop("Waiting for data");
+  // Reshape to loaded data.
+  top[0]->ReshapeLike(prefetch_current_->data_);
+  top[0]->set_cpu_data(prefetch_current_->data_.mutable_cpu_data());
+  if (this->output_labels_) {
+    // Reshape to loaded labels.
+    top[1]->ReshapeLike(prefetch_current_->label_);
+    top[1]->set_cpu_data(prefetch_current_->label_.mutable_cpu_data());
+    // Copy the data
+    top[2]->ReshapeLike(prefetch_current_->filter_);
+    top[2]->set_cpu_data(prefetch_current_->filter_.mutable_cpu_data());
+  }
 }
 
 #ifdef CPU_ONLY

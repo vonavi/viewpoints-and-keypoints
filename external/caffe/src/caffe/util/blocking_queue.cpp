@@ -3,6 +3,7 @@
 
 #include "caffe/layers/base_data_layer.hpp"
 #include "caffe/layers/window_pose_data_layer.hpp"
+#include "caffe/layers/window_multiclass_keypoint_data_layer.hpp"
 #include "caffe/parallel.hpp"
 #include "caffe/util/blocking_queue.hpp"
 
@@ -90,5 +91,7 @@ template class BlockingQueue<Batch<float>*>;
 template class BlockingQueue<Batch<double>*>;
 template class BlockingQueue<PoseBatch<float>*>;
 template class BlockingQueue<PoseBatch<double>*>;
+template class BlockingQueue<MulticlassKeypointBatch<float>*>;
+template class BlockingQueue<MulticlassKeypointBatch<double>*>;
 
 }  // namespace caffe
