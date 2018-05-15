@@ -8,14 +8,14 @@ CLASSES = {'aeroplane': 1, 'bicycle': 2, 'boat': 4, 'bottle': 5, 'bus': 6,
            'car': 7, 'chair': 9, 'diningtable': 11, 'motorbike': 14, 'sofa': 18,
            'train': 19, 'tvmonitor': 20}
 
-def read_set(root, cls, dataset, imgset):
+def read_class_set(root, cls, dataset, phase):
     if dataset == 'pascal':
-        setname = cls + '_' + imgset + '.txt'
+        setname = cls + '_' + phase + '.txt'
         setpath = os.path.join(
             root, 'PASCAL', 'VOCdevkit', 'VOC2012', 'ImageSets', 'Main', setname
         )
     elif dataset == 'imagenet':
-        setname = '_'.join([cls, dataset, imgset]) + '.txt'
+        setname = '_'.join([cls, dataset, phase]) + '.txt'
         setpath = os.path.join(root, 'Image_sets', setname)
     else:
         raise ValueError('Unknown {} dataset'.format(dataset))

@@ -12,12 +12,13 @@ LIB_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_PATH = os.path.join(LIB_PATH, '..', 'data')
 CACHE_PATH = os.path.join(LIB_PATH, '..', 'cachedir')
 
-class CollectTrainData(luigi.Task):
-    cls = luigi.Parameter()
+class CollectClassData(luigi.Task):
+    cls = luigi.ChoiceParameter(choices=pascal3d.CLASSES.keys(), var_type=str)
+    phase = luigi.ChoiceParameter(choices=['train', 'val'], var_type=str)
 
     def output(self):
         return luigi.LocalTarget(
-            os.path.join(CACHE_PATH, 'vps_' + self.cls + '_train.txt')
+            os.path.join(CACHE_PATH, 'vps_' + self.cls, self.phase + '.txt')
         )
 
     def requires(self):
@@ -27,39 +28,7 @@ class CollectTrainData(luigi.Task):
         pascal3d_root = self.input().path
         imgset_parts = list(map(
             lambda dataset:
-            pascal3d.read_set(pascal3d_root, self.cls, dataset, 'train'),
-            ['pascal', 'imagenet']
-        ))
-        imgset = np.concatenate(imgset_parts)
-
-        with self.output().open('w') as f:
-            for idx, item in enumerate(list(imgset)):
-                cls = item['class'][0]
-                dataset = item['dataset'][0]
-                imgid = item['imgid'][0]
-
-                f.write('# {}\n'.format(idx))
-                annot = pascal3d.Annotations(
-                    root=pascal3d_root, cls=cls, dataset=dataset, imgid=imgid
-                )
-                f.write(annot.tolines())
-
-class CollectValData(luigi.Task):
-    cls = luigi.Parameter()
-
-    def output(self):
-        return luigi.LocalTarget(
-            os.path.join(CACHE_PATH, 'vps_' + self.cls + '_val.txt')
-        )
-
-    def requires(self):
-        return UnzipPascal3d()
-
-    def run(self):
-        pascal3d_root = self.input().path
-        imgset_parts = list(map(
-            lambda dataset:
-            pascal3d.read_set(pascal3d_root, self.cls, dataset, 'val'),
+            pascal3d.read_class_set(pascal3d_root, self.cls, dataset, self.phase),
             ['pascal', 'imagenet']
         ))
         imgset = np.concatenate(imgset_parts)
