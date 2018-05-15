@@ -17,118 +17,64 @@ class CollectTrainData(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget(
-            os.path.join(CACHE_PATH, 'vps_binned_joint', 'train.txt')
+            os.path.join(CACHE_PATH, 'vps_' + self.cls + '_train.txt')
         )
 
     def requires(self):
-        return [UnzipPascal3d(), ConvertPascalTrain(self.cls),
-                ConvertImagenetTrain(self.cls)]
+        return UnzipPascal3d()
 
     def run(self):
-        pascal3d_root = self.input()[0].path
-        count = 0
+        pascal3d_root = self.input().path
+        imgset_parts = list(map(
+            lambda dataset:
+            pascal3d.read_set(pascal3d_root, self.cls, dataset, 'train'),
+            ['pascal', 'imagenet']
+        ))
+        imgset = np.concatenate(imgset_parts)
 
         with self.output().open('w') as f:
-            for (task, dataset) in zip(self.input()[1:], ['pascal', 'imagenet']):
-                for imgid in list(np.load(task.path)):
-                    f.write('# {}\n'.format(count))
-                    annot = pascal3d.Annotations(
-                        root=pascal3d_root, cls=self.cls, dataset=dataset,
-                        imgid=imgid
-                    )
-                    f.write(annot.tolines())
-                    count += 1
+            for idx, item in enumerate(list(imgset)):
+                cls = item['class'][0]
+                dataset = item['dataset'][0]
+                imgid = item['imgid'][0]
+
+                f.write('# {}\n'.format(idx))
+                annot = pascal3d.Annotations(
+                    root=pascal3d_root, cls=cls, dataset=dataset, imgid=imgid
+                )
+                f.write(annot.tolines())
 
 class CollectValData(luigi.Task):
     cls = luigi.Parameter()
 
     def output(self):
         return luigi.LocalTarget(
-            os.path.join(CACHE_PATH, 'vps_binned_joint', 'val.txt')
+            os.path.join(CACHE_PATH, 'vps_' + self.cls + '_val.txt')
         )
 
     def requires(self):
-        return [UnzipPascal3d(), ConvertPascalVal(self.cls),
-                ConvertImagenetVal(self.cls)]
+        return UnzipPascal3d()
 
     def run(self):
-        pascal3d_root = self.input()[0].path
-        count = 0
+        pascal3d_root = self.input().path
+        imgset_parts = list(map(
+            lambda dataset:
+            pascal3d.read_set(pascal3d_root, self.cls, dataset, 'val'),
+            ['pascal', 'imagenet']
+        ))
+        imgset = np.concatenate(imgset_parts)
 
         with self.output().open('w') as f:
-            for (task, dataset) in zip(self.input()[1:], ['pascal', 'imagenet']):
-                for imgid in list(np.load(task.path)):
-                    f.write('# {}\n'.format(count))
-                    annot = pascal3d.Annotations(
-                        root=pascal3d_root, cls=self.cls, dataset=dataset,
-                        imgid=imgid
-                    )
-                    f.write(annot.tolines())
-                    count += 1
+            for idx, item in enumerate(list(imgset)):
+                cls = item['class'][0]
+                dataset = item['dataset'][0]
+                imgid = item['imgid'][0]
 
-class ConvertPascalTrain(luigi.Task):
-    cls = luigi.Parameter()
-
-    def output(self):
-        setname = 'pascal_{}_train.npy'.format(self.cls)
-        return luigi.LocalTarget(os.path.join(CACHE_PATH, setname))
-
-    def requires(self):
-        return UnzipPascal3d()
-
-    def run(self):
-        imgset = pascal3d.convert_set(
-            self.input().path, self.cls, 'pascal', 'train'
-        )
-        np.save(self.output().path, imgset)
-
-class ConvertPascalVal(luigi.Task):
-    cls = luigi.Parameter()
-
-    def output(self):
-        setname = 'pascal_{}_val.npy'.format(self.cls)
-        return luigi.LocalTarget(os.path.join(CACHE_PATH, setname))
-
-    def requires(self):
-        return UnzipPascal3d()
-
-    def run(self):
-        imgset = pascal3d.convert_set(
-            self.input().path, self.cls, 'pascal', 'val'
-        )
-        np.save(self.output().path, imgset)
-
-class ConvertImagenetTrain(luigi.Task):
-    cls = luigi.Parameter()
-
-    def output(self):
-        setname = 'imagenet_{}_train.npy'.format(self.cls)
-        return luigi.LocalTarget(os.path.join(CACHE_PATH, setname))
-
-    def requires(self):
-        return UnzipPascal3d()
-
-    def run(self):
-        imgset = pascal3d.convert_set(
-            self.input().path, self.cls, 'imagenet', 'train'
-        )
-        np.save(self.output().path, imgset)
-
-class ConvertImagenetVal(luigi.Task):
-    cls = luigi.Parameter()
-
-    def output(self):
-        setname = 'imagenet_{}_val.npy'.format(self.cls)
-        return luigi.LocalTarget(os.path.join(CACHE_PATH, setname))
-
-    def requires(self):
-        return UnzipPascal3d()
-
-    def run(self):
-        imgset = pascal3d.convert_set(
-            self.input().path, self.cls, 'imagenet', 'val'
-        )
-        np.save(self.output().path, imgset)
+                f.write('# {}\n'.format(idx))
+                annot = pascal3d.Annotations(
+                    root=pascal3d_root, cls=cls, dataset=dataset, imgid=imgid
+                )
+                f.write(annot.tolines())
 
 class UnzipPascal3d(luigi.Task):
     def output(self):

@@ -8,7 +8,7 @@ CLASSES = {'aeroplane': 1, 'bicycle': 2, 'boat': 4, 'bottle': 5, 'bus': 6,
            'car': 7, 'chair': 9, 'diningtable': 11, 'motorbike': 14, 'sofa': 18,
            'train': 19, 'tvmonitor': 20}
 
-def convert_set(root, cls, dataset, imgset):
+def read_set(root, cls, dataset, imgset):
     if dataset == 'pascal':
         setname = cls + '_' + imgset + '.txt'
         setpath = os.path.join(
@@ -26,12 +26,21 @@ def convert_set(root, cls, dataset, imgset):
                 words = line.split()
                 if words[1] == '-1':
                     continue
-                yield words[0]
+
+                item = np.array(
+                    [(cls, dataset, words[0])],
+                    dtype=[('class', 'U16'), ('dataset', 'U16'), ('imgid', 'U16')]
+                )
+                yield item
 
     else:
         def gen_set(lines):
             for line in lines:
-                yield line
+                item = np.array(
+                    [(cls, dataset, line)],
+                    dtype=[('class', 'U16'), ('dataset', 'U16'), ('imgid', 'U16')]
+                )
+                yield item
 
     with open(setpath, 'r') as f:
         lines = f.read().splitlines()
