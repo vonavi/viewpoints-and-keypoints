@@ -75,36 +75,36 @@ class Pose(object):
 
 class Annotations(object):
     def __init__(self, root, cls, dataset, imgid, exclude_occluded=False):
-        self.__root__ = os.path.normpath(root)
+        self.__root = os.path.normpath(root)
         matpath = os.path.join(
-            self.__root__, 'Annotations', cls + '_' + dataset, imgid + '.mat'
+            self.__root, 'Annotations', cls + '_' + dataset, imgid + '.mat'
         )
         data = sio.loadmat(matpath)
         record = data['record'][0][0]
 
         if dataset == 'pascal':
             imgname = record['imgname'][0]
-            self.__imgname__ = os.path.join('PASCAL', 'VOCdevkit', imgname)
+            self.__imgname = os.path.join('PASCAL', 'VOCdevkit', imgname)
         elif dataset == 'imagenet':
             filename = record['filename'][0]
-            self.__imgname__ = os.path.join(
+            self.__imgname = os.path.join(
                 'Images', cls + '_' + dataset, filename
             )
         else:
             raise ValueError('Unknown {} dataset'.format(dataset))
 
         size = record['size'][0][0]
-        self.__width__ = size['width'][0][0]
-        self.__height__ = size['height'][0][0]
-        self.__depth__ = size['depth'][0][0]
+        self.__width = size['width'][0][0]
+        self.__height = size['height'][0][0]
+        self.__depth = size['depth'][0][0]
 
-        self.__objects__ = record['objects'][0]
-        self.__data__ = self.read_data(cls, exclude_occluded)
+        self.__objects = record['objects'][0]
+        self.__data = self.read_data(cls, exclude_occluded)
 
     def read_data(self, cls, exclude_occluded):
         data = []
 
-        for obj in list(self.__objects__):
+        for obj in list(self.__objects):
             obj_class = obj['class'][0]
             difficult = bool(obj['difficult'][0][0])
             if obj_class != cls or difficult:
@@ -151,13 +151,13 @@ class Annotations(object):
         return boxes
 
     def tolines(self):
-        imgpath = os.path.join(self.__root__, self.__imgname__)
+        imgpath = os.path.join(self.__root, self.__imgname)
         lines = '{}\n{}\n{}\n{}\n'.format(
-            imgpath, self.__depth__, self.__width__, self.__height__
+            imgpath, self.__depth, self.__width, self.__height
         )
 
-        if self.__data__:
-            poses = np.concatenate(self.__data__)
+        if self.__data:
+            poses = np.concatenate(self.__data)
             lines += '{}\n'.format(poses.size)
             lines += ''.join(map(lambda x: x.toline(), poses))
         else:
