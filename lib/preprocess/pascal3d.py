@@ -153,7 +153,7 @@ class Annotations(object):
     def tolines(self):
         imgpath = os.path.join(self.__root, self.__imgname)
         lines = '{}\n{}\n{}\n{}\n'.format(
-            imgpath, self.__depth, self.__width, self.__height
+            imgpath, self.__depth, self.__height, self.__width
         )
 
         if self.__data:
