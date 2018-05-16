@@ -56,7 +56,7 @@ class Pose(object):
         self.theta = theta
 
     def toline(self):
-        # TODO Convert the bounding box from one- to zero-based
+        # Object class should be 1-indexed
         return '{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(
             CLASSES.index(self.cls) + 1, 1.0, *self.bbox,
             math.ceil(self.theta * 10.5/180 + 9.5),
@@ -121,7 +121,9 @@ class Annotations(object):
             elevation = viewpoint['elevation'][0][0]
             theta = viewpoint['theta'][0][0]
 
-            boxes = self.overlapping_boxes(obj['bbox'][0])
+            # Convert the bounding box from 1- to 0-indexed
+            bbox = obj['bbox'][0] - 1
+            boxes = self.overlapping_boxes(bbox)
             def create_pose(box):
                 return Pose(
                     cls=cls, bbox=box, azimuth=azimuth, elevation=elevation,
@@ -132,7 +134,8 @@ class Annotations(object):
 
         return data
 
-    def overlapping_boxes(self, bbox):
+    @staticmethod
+    def overlapping_boxes(bbox):
         dx = float(bbox[2] - bbox[0]) / float(6)
         dy = float(bbox[3] - bbox[1]) / float(6)
 
@@ -147,7 +150,7 @@ class Annotations(object):
                                    bbox[3] + y2_shift * dy]
 
         boxes = np.stack(gen_boxes())
-        boxes = np.rint(boxes).astype(np.int)
+        boxes = np.round(boxes).astype(np.int)
         return boxes
 
     def tolines(self):
