@@ -13,7 +13,7 @@ DATA_PATH = os.path.join(LIB_PATH, '..', 'data')
 CACHE_PATH = os.path.join(LIB_PATH, '..', 'cachedir')
 
 class CollectClassData(luigi.Task):
-    cls = luigi.ChoiceParameter(choices=pascal3d.CLASSES.keys(), var_type=str)
+    cls = luigi.ChoiceParameter(choices=pascal3d.CLASSES, var_type=str)
     phase = luigi.ChoiceParameter(choices=['train', 'val'], var_type=str)
 
     def output(self):

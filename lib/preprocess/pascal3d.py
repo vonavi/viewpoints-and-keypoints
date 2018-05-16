@@ -4,9 +4,8 @@ import math
 import numpy as np
 import scipy.io as sio
 
-CLASSES = {'aeroplane': 1, 'bicycle': 2, 'boat': 4, 'bottle': 5, 'bus': 6,
-           'car': 7, 'chair': 9, 'diningtable': 11, 'motorbike': 14, 'sofa': 18,
-           'train': 19, 'tvmonitor': 20}
+CLASSES = ['aeroplane', 'bicycle', 'boat', 'bottle', 'bus', 'car', 'chair',
+           'diningtable', 'motorbike', 'sofa', 'train', 'tvmonitor']
 
 def read_class_set(root, cls, dataset, phase):
     if dataset == 'pascal':
@@ -59,7 +58,7 @@ class Pose(object):
     def toline(self):
         # TODO Convert the bounding box from one- to zero-based
         return '{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(
-            CLASSES[self.cls], 1.0, *self.bbox,
+            CLASSES.index(self.cls) + 1, 1.0, *self.bbox,
             math.ceil(self.theta * 10.5/180 + 9.5),
             math.ceil(- self.theta * 10.5/180 + 9.5),
             math.ceil(self.elevation * 10.5/180 + 9.5),
@@ -94,7 +93,11 @@ class Annotations(object):
         else:
             raise ValueError('Unknown {} dataset'.format(dataset))
 
-        self.__imgsize__ = record['imgsize'][0]
+        size = record['size'][0][0]
+        self.__width__ = size['width'][0][0]
+        self.__height__ = size['height'][0][0]
+        self.__depth__ = size['depth'][0][0]
+
         self.__objects__ = record['objects'][0]
         self.__data__ = self.read_data(cls, exclude_occluded)
 
@@ -149,7 +152,9 @@ class Annotations(object):
 
     def tolines(self):
         imgpath = os.path.join(self.__root__, self.__imgname__)
-        lines = '{}\n{}\n{}\n{}\n'.format(imgpath, *self.__imgsize__[[2, 0, 1]])
+        lines = '{}\n{}\n{}\n{}\n'.format(
+            imgpath, self.__depth__, self.__width__, self.__height__
+        )
 
         if self.__data__:
             poses = np.concatenate(self.__data__)
