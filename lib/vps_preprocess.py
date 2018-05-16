@@ -18,8 +18,7 @@ class CollectClassData(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget(
-            os.path.join(CACHE_PATH, 'vps_' + self.cls, self.phase + '.txt')
-        )
+            os.path.join(CACHE_PATH, 'vps_' + self.cls, self.phase + '.txt'))
 
     def requires(self):
         return UnzipPascal3d()
@@ -41,8 +40,7 @@ class CollectClassData(luigi.Task):
 
                 f.write('# {}\n'.format(idx))
                 annot = pascal3d.Annotations(
-                    cls=cls, dataset=dataset, imgid=imgid
-                )
+                    cls=cls, dataset=dataset, imgid=imgid)
                 f.write(annot.tolines())
 
 class UnzipPascal3d(luigi.Task):
@@ -63,8 +61,7 @@ class DownloadPascal3d(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget(
-            os.path.join(DATA_PATH, self.filename), format=luigi.format.Nop
-        )
+            os.path.join(DATA_PATH, self.filename), format=luigi.format.Nop)
 
     def run(self):
         ftp = FTP('cs.stanford.edu')
@@ -84,11 +81,9 @@ class DownloadPascal3d(luigi.Task):
             out_file.write(block)
             size_written += len(block)
             self.set_status_message(
-                'Progress: {} / {}'.format(size_written, total_size)
-            )
+                'Progress: {} / {}'.format(size_written, total_size))
             self.set_progress_percentage(
-                math.floor(100 * size_written / total_size)
-            )
+                math.floor(100 * size_written / total_size))
 
         conn.close()
         out_file.close()

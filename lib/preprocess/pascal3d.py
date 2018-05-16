@@ -15,8 +15,7 @@ class Pascal(object):
 
     def load_record(self, cls, imgid):
         matpath = os.path.join(
-            self.__root, 'Annotations', cls + '_' + self.__name, imgid + '.mat'
-        )
+            self.__root, 'Annotations', cls + '_' + self.__name, imgid + '.mat')
         data = sio.loadmat(matpath)
         return data['record'][0][0]
 
@@ -25,16 +24,14 @@ class Pascal(object):
         imgpath = os.path.join(self.__root, 'PASCAL', 'VOCdevkit', imgname)
         if not os.path.isfile(imgpath):
             raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), imgpath
-            )
+                errno.ENOENT, os.strerror(errno.ENOENT), imgpath)
         return imgpath
 
     def read_class_set(self, cls, phase):
         setname = cls + '_' + phase + '.txt'
         setpath = os.path.join(
-            self.__root, 'PASCAL', 'VOCdevkit', 'VOC2012', 'ImageSets', 'Main',
-            setname
-        )
+            self.__root, 'PASCAL', 'VOCdevkit', 'VOC2012',
+            'ImageSets', 'Main', setname)
 
         def gen_set(lines):
             for line in lines:
@@ -43,9 +40,8 @@ class Pascal(object):
                     continue
 
                 item = np.array(
-                    [(cls, self, words[0])],
-                    dtype=[('class', 'U16'), ('dataset', 'object'), ('imgid', 'U16')]
-                )
+                    [(cls, self, words[0])], dtype=[
+                        ('class', 'U16'), ('dataset', 'object'), ('imgid', 'U16')])
                 yield item
 
         with open(setpath, 'r') as f:
@@ -61,20 +57,17 @@ class Imagenet(object):
 
     def load_record(self, cls, imgid):
         matpath = os.path.join(
-            self.__root, 'Annotations', cls + '_' + self.__name, imgid + '.mat'
-        )
+            self.__root, 'Annotations', cls + '_' + self.__name, imgid + '.mat')
         data = sio.loadmat(matpath)
         return data['record'][0][0]
 
     def get_imgpath(self, cls, record):
         filename = record['filename'][0]
         imgpath = os.path.join(
-            self.__root, 'Images', cls + '_' + self.__name, filename
-        )
+            self.__root, 'Images', cls + '_' + self.__name, filename)
         if not os.path.isfile(imgpath):
             raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), imgpath
-            )
+                errno.ENOENT, os.strerror(errno.ENOENT), imgpath)
         return imgpath
 
     def read_class_set(self, cls, phase):
@@ -84,9 +77,8 @@ class Imagenet(object):
         def gen_set(lines):
             for line in lines:
                 item = np.array(
-                    [(cls, self, line)],
-                    dtype=[('class', 'U16'), ('dataset', 'object'), ('imgid', 'U16')]
-                )
+                    [(cls, self, line)], dtype=[
+                        ('class', 'U16'), ('dataset', 'object'), ('imgid', 'U16')])
                 yield item
 
         with open(setpath, 'r') as f:
@@ -118,8 +110,7 @@ class Pose(object):
             math.ceil(self.elevation * 3.5/180 + 2.5),
             math.ceil(self.elevation * 3.5/180 + 2.5),
             math.floor(self.azimuth * 3.5/180),
-            6 - math.floor(self.azimuth * 3.5/180)
-        )
+            6 - math.floor(self.azimuth * 3.5/180))
 
 class Annotations(object):
     def __init__(self, cls, dataset, imgid, exclude_occluded=False):
@@ -160,8 +151,7 @@ class Annotations(object):
             def create_pose(box):
                 return Pose(
                     cls=cls, bbox=box, azimuth=azimuth, elevation=elevation,
-                    theta=theta
-                )
+                    theta=theta)
             poses = np.apply_along_axis(create_pose, 1, boxes)
             data.append(poses)
 
@@ -188,8 +178,7 @@ class Annotations(object):
 
     def tolines(self):
         lines = '{}\n{}\n{}\n{}\n'.format(
-            self.__imgpath, self.__depth, self.__height, self.__width
-        )
+            self.__imgpath, self.__depth, self.__height, self.__width)
 
         if self.__data:
             poses = np.concatenate(self.__data)
