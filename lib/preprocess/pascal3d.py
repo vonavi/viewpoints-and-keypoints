@@ -1,3 +1,4 @@
+import errno
 import os
 
 import math
@@ -7,19 +8,34 @@ import scipy.io as sio
 CLASSES = ['aeroplane', 'bicycle', 'boat', 'bottle', 'bus', 'car', 'chair',
            'diningtable', 'motorbike', 'sofa', 'train', 'tvmonitor']
 
-def read_class_set(root, cls, dataset, phase):
-    if dataset == 'pascal':
+class Pascal(object):
+    def __init__(self, root):
+        self.__name = 'pascal'
+        self.__root = os.path.normpath(root)
+
+    def load_record(self, cls, imgid):
+        matpath = os.path.join(
+            self.__root, 'Annotations', cls + '_' + self.__name, imgid + '.mat'
+        )
+        data = sio.loadmat(matpath)
+        return data['record'][0][0]
+
+    def get_imgpath(self, cls, record):
+        imgname = record['imgname'][0]
+        imgpath = os.path.join(self.__root, 'PASCAL', 'VOCdevkit', imgname)
+        if not os.path.isfile(imgpath):
+            raise FileNotFoundError(
+                errno.ENOENT, os.strerror(errno.ENOENT), imgpath
+            )
+        return imgpath
+
+    def read_class_set(self, cls, phase):
         setname = cls + '_' + phase + '.txt'
         setpath = os.path.join(
-            root, 'PASCAL', 'VOCdevkit', 'VOC2012', 'ImageSets', 'Main', setname
+            self.__root, 'PASCAL', 'VOCdevkit', 'VOC2012', 'ImageSets', 'Main',
+            setname
         )
-    elif dataset == 'imagenet':
-        setname = '_'.join([cls, dataset, phase]) + '.txt'
-        setpath = os.path.join(root, 'Image_sets', setname)
-    else:
-        raise ValueError('Unknown {} dataset'.format(dataset))
 
-    if dataset == 'pascal':
         def gen_set(lines):
             for line in lines:
                 words = line.split()
@@ -27,25 +43,57 @@ def read_class_set(root, cls, dataset, phase):
                     continue
 
                 item = np.array(
-                    [(cls, dataset, words[0])],
-                    dtype=[('class', 'U16'), ('dataset', 'U16'), ('imgid', 'U16')]
+                    [(cls, self, words[0])],
+                    dtype=[('class', 'U16'), ('dataset', 'object'), ('imgid', 'U16')]
                 )
                 yield item
 
-    else:
+        with open(setpath, 'r') as f:
+            lines = f.read().splitlines()
+            imgset = np.stack(gen_set(lines))
+
+        return imgset
+
+class Imagenet(object):
+    def __init__(self, root):
+        self.__name = 'imagenet'
+        self.__root = os.path.normpath(root)
+
+    def load_record(self, cls, imgid):
+        matpath = os.path.join(
+            self.__root, 'Annotations', cls + '_' + self.__name, imgid + '.mat'
+        )
+        data = sio.loadmat(matpath)
+        return data['record'][0][0]
+
+    def get_imgpath(self, cls, record):
+        filename = record['filename'][0]
+        imgpath = os.path.join(
+            self.__root, 'Images', cls + '_' + self.__name, filename
+        )
+        if not os.path.isfile(imgpath):
+            raise FileNotFoundError(
+                errno.ENOENT, os.strerror(errno.ENOENT), imgpath
+            )
+        return imgpath
+
+    def read_class_set(self, cls, phase):
+        setname = '_'.join([cls, self.__name, phase]) + '.txt'
+        setpath = os.path.join(self.__root, 'Image_sets', setname)
+
         def gen_set(lines):
             for line in lines:
                 item = np.array(
-                    [(cls, dataset, line)],
-                    dtype=[('class', 'U16'), ('dataset', 'U16'), ('imgid', 'U16')]
+                    [(cls, self, line)],
+                    dtype=[('class', 'U16'), ('dataset', 'object'), ('imgid', 'U16')]
                 )
                 yield item
 
-    with open(setpath, 'r') as f:
-        lines = f.read().splitlines()
-        imgset = np.stack(gen_set(lines))
+        with open(setpath, 'r') as f:
+            lines = f.read().splitlines()
+            imgset = np.stack(gen_set(lines))
 
-    return imgset
+        return imgset
 
 class Pose(object):
     def __init__(self, cls, bbox, azimuth, elevation, theta):
@@ -74,37 +122,22 @@ class Pose(object):
         )
 
 class Annotations(object):
-    def __init__(self, root, cls, dataset, imgid, exclude_occluded=False):
-        self.__root = os.path.normpath(root)
-        matpath = os.path.join(
-            self.__root, 'Annotations', cls + '_' + dataset, imgid + '.mat'
-        )
-        data = sio.loadmat(matpath)
-        record = data['record'][0][0]
-
-        if dataset == 'pascal':
-            imgname = record['imgname'][0]
-            self.__imgname = os.path.join('PASCAL', 'VOCdevkit', imgname)
-        elif dataset == 'imagenet':
-            filename = record['filename'][0]
-            self.__imgname = os.path.join(
-                'Images', cls + '_' + dataset, filename
-            )
-        else:
-            raise ValueError('Unknown {} dataset'.format(dataset))
+    def __init__(self, cls, dataset, imgid, exclude_occluded=False):
+        record = dataset.load_record(cls, imgid)
+        self.__imgpath = dataset.get_imgpath(cls, record)
 
         size = record['size'][0][0]
         self.__width = size['width'][0][0]
         self.__height = size['height'][0][0]
         self.__depth = size['depth'][0][0]
 
-        self.__objects = record['objects'][0]
-        self.__data = self.read_data(cls, exclude_occluded)
+        objects = record['objects'][0]
+        self.__data = self.read_data(objects, cls, exclude_occluded)
 
-    def read_data(self, cls, exclude_occluded):
+    def read_data(self, objects, cls, exclude_occluded):
         data = []
 
-        for obj in list(self.__objects):
+        for obj in list(objects):
             obj_class = obj['class'][0]
             difficult = bool(obj['difficult'][0][0])
             if obj_class != cls or difficult:
@@ -154,9 +187,8 @@ class Annotations(object):
         return boxes
 
     def tolines(self):
-        imgpath = os.path.join(self.__root, self.__imgname)
         lines = '{}\n{}\n{}\n{}\n'.format(
-            imgpath, self.__depth, self.__height, self.__width
+            self.__imgpath, self.__depth, self.__height, self.__width
         )
 
         if self.__data:

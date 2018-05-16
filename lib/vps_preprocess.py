@@ -26,12 +26,12 @@ class CollectClassData(luigi.Task):
 
     def run(self):
         pascal3d_root = self.input().path
-        imgset_parts = list(map(
-            lambda dataset:
-            pascal3d.read_class_set(pascal3d_root, self.cls, dataset, self.phase),
-            ['pascal', 'imagenet']
-        ))
-        imgset = np.concatenate(imgset_parts)
+        pascal = pascal3d.Pascal(pascal3d_root)
+        imagenet = pascal3d.Imagenet(pascal3d_root)
+
+        pascal_set = pascal.read_class_set(self.cls, self.phase)
+        imagenet_set = imagenet.read_class_set(self.cls, self.phase)
+        imgset = np.concatenate([pascal_set, imagenet_set])
 
         with self.output().open('w') as f:
             for idx, item in enumerate(list(imgset)):
@@ -41,7 +41,7 @@ class CollectClassData(luigi.Task):
 
                 f.write('# {}\n'.format(idx))
                 annot = pascal3d.Annotations(
-                    root=pascal3d_root, cls=cls, dataset=dataset, imgid=imgid
+                    cls=cls, dataset=dataset, imgid=imgid
                 )
                 f.write(annot.tolines())
 
