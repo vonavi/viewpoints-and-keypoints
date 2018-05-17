@@ -28,26 +28,27 @@ class Dataset(object):
             self.root, 'Annotations', cls + '_' + self.name, imgid + '.mat')
 
     def read_sets_for_classes(self, setpaths, classes):
-        def gen_set(lines):
-            imgid_dict = self.classes_by_imgid(classes)
-            for line in lines:
-                words = line.split()
-                if len(words) > 1 and not words[1] == '1':
-                    continue
+        imgid_dict = self.classes_by_imgid(classes)
 
-                imgid = words[0]
-                imgid_classes = imgid_dict[imgid]
-                if imgid_classes:
-                    item = np.array(
-                        [(imgid, imgid_classes)],
-                        dtype=[('imgid', 'U16'), ('classes', object)])
-                    yield item
-
-        lines = []
+        records = []
         for path in setpaths:
             with open(path, 'r') as f:
-                lines += f.read().splitlines()
-        return np.stack(gen_set(lines))
+                for line in f.read().splitlines():
+                    words = line.split()
+                    if len(words) > 1 and words[1] != '1':
+                        continue
+
+                    imgid = words[0]
+                    classes = imgid_dict[imgid]
+                    if not classes:
+                        continue
+
+                    item = dict()
+                    item['imgid'] = imgid
+                    item['classes'] = classes
+                    records.append(item)
+
+        return records
 
     def classes_by_imgid(self, classes):
         cls_dict = dict()
@@ -143,8 +144,8 @@ class Pose(object):
 class Annotations(object):
     def __init__(self, classes, dataset, imgid, exclude_occluded=False):
         self.__exclude_occluded = exclude_occluded
-
         self.__data = []
+
         for idx, cls in enumerate(classes):
             data = sio.loadmat(dataset.matpath(cls, imgid))
             record = data['record'][0][0]
@@ -157,10 +158,9 @@ class Annotations(object):
                 self.__depth = size['depth'][0][0]
 
             objects = record['objects'][0]
-            self.__data += self.read_class_data(cls, objects)
+            self.read_class_data(cls, objects)
 
     def read_class_data(self, cls, objects):
-        class_poses = []
         for obj in list(objects):
             obj_class = obj['class'][0]
             difficult = bool(obj['difficult'][0][0])
@@ -180,15 +180,11 @@ class Annotations(object):
 
             # Convert the bounding box from 1- to 0-indexed
             bbox = obj['bbox'][0] - 1
-            boxes = self.overlapping_boxes(bbox)
-            def create_pose(box):
-                return Pose(
+            for box in self.overlapping_boxes(bbox):
+                pose = Pose(
                     cls=obj_class, bbox=box, azimuth=azimuth,
                     elevation=elevation, theta=theta)
-            poses = np.apply_along_axis(create_pose, 1, boxes)
-            class_poses.append(poses)
-
-        return class_poses
+                self.__data.append(pose)
 
     @staticmethod
     def overlapping_boxes(bbox):
@@ -212,12 +208,6 @@ class Annotations(object):
     def tolines(self):
         lines = '{}\n{}\n{}\n{}\n'.format(
             self.__imgpath, self.__depth, self.__height, self.__width)
-
-        if self.__data:
-            poses = np.concatenate(self.__data)
-            lines += '{}\n'.format(poses.size)
-            lines += ''.join(map(lambda x: x.toline(), poses))
-        else:
-            lines += '0\n'
-
+        lines += '{}\n'.format(len(self.__data))
+        lines += ''.join(map(lambda x: x.toline(), self.__data))
         return lines

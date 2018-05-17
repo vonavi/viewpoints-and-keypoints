@@ -3,7 +3,6 @@ import os
 from ftplib import FTP
 import math
 import zipfile
-import numpy as np
 import luigi
 
 from preprocess import pascal3d
@@ -13,9 +12,9 @@ DATA_PATH = os.path.join(LIB_PATH, '..', 'data')
 CACHE_PATH = os.path.join(LIB_PATH, '..', 'cachedir')
 
 def write_annotations(dataset, imgset, fd):
-    for idx, item in enumerate(list(imgset)):
-        imgid = item['imgid'][0]
-        classes = item['classes'][0]
+    for idx, item in enumerate(imgset):
+        imgid = item['imgid']
+        classes = item['classes']
 
         fd.write('# {}\n'.format(idx))
         img_annot = pascal3d.Annotations(
