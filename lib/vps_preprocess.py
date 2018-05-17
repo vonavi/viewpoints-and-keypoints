@@ -24,24 +24,25 @@ class CollectClassData(luigi.Task):
         return UnzipPascal3d()
 
     def run(self):
-        pascal3d_root = self.input().path
-        pascal = pascal3d.Pascal(pascal3d_root)
-        imagenet = pascal3d.Imagenet(pascal3d_root)
-
-        pascal_set = pascal.read_class_set(self.cls, self.phase)
-        imagenet_set = imagenet.read_class_set(self.cls, self.phase)
-        imgset = np.concatenate([pascal_set, imagenet_set])
-
-        with self.output().open('w') as f:
+        def write_annotations(dataset, imgset):
             for idx, item in enumerate(list(imgset)):
                 cls = item['class'][0]
-                dataset = item['dataset'][0]
                 imgid = item['imgid'][0]
 
                 f.write('# {}\n'.format(idx))
                 annot = pascal3d.Annotations(
                     cls=cls, dataset=dataset, imgid=imgid)
                 f.write(annot.tolines())
+
+        pascal3d_root = self.input().path
+        with self.output().open('w') as f:
+            pascal = pascal3d.Pascal(pascal3d_root)
+            pascal_set = pascal.read_class_set(self.cls, self.phase)
+            write_annotations(pascal, pascal_set)
+
+            imagenet = pascal3d.Imagenet(pascal3d_root)
+            imagenet_set = imagenet.read_class_set(self.cls, self.phase)
+            write_annotations(imagenet, imagenet_set)
 
 class UnzipPascal3d(luigi.Task):
     def output(self):

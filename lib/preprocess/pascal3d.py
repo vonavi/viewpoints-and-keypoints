@@ -13,15 +13,13 @@ class Pascal(object):
         self.__name = 'pascal'
         self.__root = os.path.normpath(root)
 
-    def load_record(self, cls, imgid):
-        matpath = os.path.join(
+    def matpath(self, cls, imgid):
+        return os.path.join(
             self.__root, 'Annotations', cls + '_' + self.__name, imgid + '.mat')
-        data = sio.loadmat(matpath)
-        return data['record'][0][0]
 
-    def get_imgpath(self, cls, record):
-        imgname = record['imgname'][0]
-        imgpath = os.path.join(self.__root, 'PASCAL', 'VOCdevkit', imgname)
+    def imgpath(self, cls, filename):
+        imgpath = os.path.join(
+            self.__root, 'PASCAL', 'VOCdevkit', 'VOC2012', 'JPEGImages', filename)
         if not os.path.isfile(imgpath):
             raise FileNotFoundError(
                 errno.ENOENT, os.strerror(errno.ENOENT), imgpath)
@@ -40,8 +38,7 @@ class Pascal(object):
                     continue
 
                 item = np.array(
-                    [(cls, self, words[0])], dtype=[
-                        ('class', 'U16'), ('dataset', 'object'), ('imgid', 'U16')])
+                    [(cls, words[0])], dtype=[('class', 'U16'), ('imgid', 'U16')])
                 yield item
 
         with open(setpath, 'r') as f:
@@ -55,14 +52,11 @@ class Imagenet(object):
         self.__name = 'imagenet'
         self.__root = os.path.normpath(root)
 
-    def load_record(self, cls, imgid):
-        matpath = os.path.join(
+    def matpath(self, cls, imgid):
+        return os.path.join(
             self.__root, 'Annotations', cls + '_' + self.__name, imgid + '.mat')
-        data = sio.loadmat(matpath)
-        return data['record'][0][0]
 
-    def get_imgpath(self, cls, record):
-        filename = record['filename'][0]
+    def imgpath(self, cls, filename):
         imgpath = os.path.join(
             self.__root, 'Images', cls + '_' + self.__name, filename)
         if not os.path.isfile(imgpath):
@@ -77,8 +71,7 @@ class Imagenet(object):
         def gen_set(lines):
             for line in lines:
                 item = np.array(
-                    [(cls, self, line)], dtype=[
-                        ('class', 'U16'), ('dataset', 'object'), ('imgid', 'U16')])
+                    [(cls, line)], dtype=[('class', 'U16'), ('imgid', 'U16')])
                 yield item
 
         with open(setpath, 'r') as f:
@@ -114,15 +107,15 @@ class Pose(object):
 
 class Annotations(object):
     def __init__(self, cls, dataset, imgid, exclude_occluded=False):
-        record = dataset.load_record(cls, imgid)
-        self.__imgpath = dataset.get_imgpath(cls, record)
-
+        data = sio.loadmat(dataset.matpath(cls, imgid))
+        record = data['record'][0][0]
         size = record['size'][0][0]
+        objects = record['objects'][0]
+
+        self.__imgpath = dataset.imgpath(cls, record['filename'][0])
         self.__width = size['width'][0][0]
         self.__height = size['height'][0][0]
         self.__depth = size['depth'][0][0]
-
-        objects = record['objects'][0]
         self.__data = self.read_data(objects, cls, exclude_occluded)
 
     def read_data(self, objects, cls, exclude_occluded):
