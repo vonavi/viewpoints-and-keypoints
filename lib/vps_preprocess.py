@@ -11,15 +11,17 @@ LIB_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_PATH = os.path.join(LIB_PATH, '..', 'data')
 CACHE_PATH = os.path.join(LIB_PATH, '..', 'cachedir')
 
-def write_annotations(dataset, imgset, fd):
-    for idx, item in enumerate(imgset):
-        imgid = item['imgid']
-        classes = item['classes']
-
-        fd.write('# {}\n'.format(idx))
-        img_annot = pascal3d.Annotations(
-            classes=classes, dataset=dataset, imgid=imgid)
-        fd.write(img_annot.tolines())
+def write_annotations(imgset_list, output):
+    with output.open('w') as f:
+        img_idx = 0
+        for imgset in imgset_list:
+            for item in imgset['set']:
+                f.write('# {}\n'.format(img_idx))
+                img_annot = pascal3d.Annotations(
+                    classes=item['classes'], dataset=imgset['dataset'],
+                    imgid=item['imgid'])
+                f.write(img_annot.tolines())
+                img_idx += 1
 
 class CollectJointData(luigi.Task):
     phase = luigi.ChoiceParameter(choices=['train', 'val'], var_type=str)
@@ -34,14 +36,14 @@ class CollectJointData(luigi.Task):
     def run(self):
         pascal3d_root = self.input().path
         classes = pascal3d.annotated_classes()
-        with self.output().open('w') as fd:
-            pascal = pascal3d.Pascal(pascal3d_root)
-            pascal_set = pascal.read_joint_set(classes, self.phase)
-            write_annotations(pascal, pascal_set, fd)
 
-            imagenet = pascal3d.Imagenet(pascal3d_root)
-            imagenet_set = imagenet.read_joint_set(classes, self.phase)
-            write_annotations(imagenet, imagenet_set, fd)
+        pascal = pascal3d.Pascal(pascal3d_root)
+        pascal_set = pascal.read_joint_set(classes, self.phase)
+        imagenet = pascal3d.Imagenet(pascal3d_root)
+        imagenet_set = imagenet.read_joint_set(classes, self.phase)
+        imgset_list = [{'dataset': pascal, 'set': pascal_set},
+                       {'dataset': imagenet, 'set': imagenet_set}]
+        write_annotations(imgset_list, self.output())
 
 class CollectClassData(luigi.Task):
     annotated_classes = pascal3d.annotated_classes()
@@ -57,14 +59,14 @@ class CollectClassData(luigi.Task):
 
     def run(self):
         pascal3d_root = self.input().path
-        with self.output().open('w') as fd:
-            pascal = pascal3d.Pascal(pascal3d_root)
-            pascal_set = pascal.read_class_set(self.cls, self.phase)
-            write_annotations(pascal, pascal_set, fd)
 
-            imagenet = pascal3d.Imagenet(pascal3d_root)
-            imagenet_set = imagenet.read_class_set(self.cls, self.phase)
-            write_annotations(imagenet, imagenet_set, fd)
+        pascal = pascal3d.Pascal(pascal3d_root)
+        pascal_set = pascal.read_class_set(self.cls, self.phase)
+        imagenet = pascal3d.Imagenet(pascal3d_root)
+        imagenet_set = imagenet.read_class_set(self.cls, self.phase)
+        imgset_list = [{'dataset': pascal, 'set': pascal_set},
+                       {'dataset': imagenet, 'set': imagenet_set}]
+        write_annotations(imgset_list, self.output())
 
 class UnzipPascal3d(luigi.Task):
     def output(self):
