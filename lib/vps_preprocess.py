@@ -16,12 +16,14 @@ def write_annotations(imgset_list, output):
         img_idx = 0
         for imgset in imgset_list:
             for item in imgset['set']:
-                f.write('# {}\n'.format(img_idx))
                 img_annot = pascal3d.Annotations(
                     classes=item['classes'], dataset=imgset['dataset'],
                     imgid=item['imgid'])
-                f.write(img_annot.tolines())
-                img_idx += 1
+
+                if not img_annot.is_empty():
+                    f.write('# {}\n'.format(img_idx))
+                    f.write(img_annot.tolines())
+                    img_idx += 1
 
 class CollectJointData(luigi.Task):
     phase = luigi.ChoiceParameter(choices=['train', 'val'], var_type=str)

@@ -180,30 +180,44 @@ class Annotations(object):
 
             # Convert the bounding box from 1- to 0-indexed
             bbox = obj['bbox'][0] - 1
+            bbox = np.round(bbox).astype(np.int)
+            if not self.is_bbox_valid(bbox):
+                continue
+
             for box in self.overlapping_boxes(bbox):
                 pose = Pose(
                     cls=obj_class, bbox=box, azimuth=azimuth,
                     elevation=elevation, theta=theta)
                 self.__data.append(pose)
 
-    @staticmethod
-    def overlapping_boxes(bbox):
-        dx = float(bbox[2] - bbox[0]) / float(6)
-        dy = float(bbox[3] - bbox[1]) / float(6)
+    def is_bbox_valid(self, bbox):
+        x1, y1, x2, y2 = bbox
+        return (x1 < self.__width) and (y1 < self.__height) and \
+            (x2 >= 0) and (y2 >= 0) and (x2 >= x1) and (y2 >= y1)
+
+    def overlapping_boxes(self, bbox):
+        dx = float(bbox[2] - bbox[0] + 1) / float(6)
+        dx = int(round(dx))
+        dy = float(bbox[3] - bbox[1] + 1) / float(6)
+        dy = int(round(dy))
 
         def gen_boxes():
             for x1_shift in -1, 0, 1:
                 for y1_shift in -1, 0, 1:
                     for x2_shift in -1, 0, 1:
                         for y2_shift in -1, 0, 1:
-                            yield [bbox[0] + x1_shift * dx,
-                                   bbox[1] + y1_shift * dy,
-                                   bbox[2] + x2_shift * dx,
-                                   bbox[3] + y2_shift * dy]
+                            x1 = max(bbox[0] + x1_shift * dx, 0)
+                            y1 = max(bbox[1] + y1_shift * dy, 0)
+                            x2 = min(bbox[2] + x2_shift * dx, self.__width - 1)
+                            y2 = min(bbox[3] + y2_shift * dy, self.__height - 1)
+                            yield [x1, y1, x2, y2]
 
         boxes = np.stack(gen_boxes())
-        boxes = np.round(boxes).astype(np.int)
+        boxes = np.unique(boxes, axis=0)
         return boxes
+
+    def is_empty(self):
+        return len(self.__data) == 0
 
     def tolines(self):
         lines = '{}\n{}\n{}\n{}\n'.format(
