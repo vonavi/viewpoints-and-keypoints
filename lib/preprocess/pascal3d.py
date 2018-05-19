@@ -5,6 +5,7 @@ import math
 import collections
 import numpy as np
 import scipy.io as sio
+from sklearn.utils.extmath import cartesian
 
 CLASSES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car',
            'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike',
@@ -69,7 +70,7 @@ class Pascal(Dataset):
     def __init__(self, root):
         super().__init__('pascal', root)
 
-    def imgpath(self, cls, filename):
+    def imgpath(self, _, filename):
         imgpath = os.path.join(
             self.root, 'PASCAL', 'VOCdevkit', 'VOC2012', 'JPEGImages', filename)
         if not os.path.isfile(imgpath):
@@ -201,18 +202,15 @@ class Annotations(object):
         dy = float(bbox[3] - bbox[1] + 1) / float(6)
         dy = int(round(dy))
 
-        def gen_boxes():
-            for x1_shift in -1, 0, 1:
-                for y1_shift in -1, 0, 1:
-                    for x2_shift in -1, 0, 1:
-                        for y2_shift in -1, 0, 1:
-                            x1 = max(bbox[0] + x1_shift * dx, 0)
-                            y1 = max(bbox[1] + y1_shift * dy, 0)
-                            x2 = min(bbox[2] + x2_shift * dx, self.__width - 1)
-                            y2 = min(bbox[3] + y2_shift * dy, self.__height - 1)
-                            yield [x1, y1, x2, y2]
+        def shift_bbox(shift):
+            x1 = max(bbox[0] + shift[0] * dx, 0)
+            y1 = max(bbox[1] + shift[1] * dy, 0)
+            x2 = min(bbox[2] + shift[2] * dx, self.__width - 1)
+            y2 = min(bbox[3] + shift[3] * dy, self.__height - 1)
+            return [x1, y1, x2, y2]
 
-        boxes = np.stack(gen_boxes())
+        shifts = cartesian(np.tile(np.array([-1, 0, 1]), (4, 1)))
+        boxes = np.apply_along_axis(shift_bbox, 1, shifts)
         boxes = np.unique(boxes, axis=0)
         return boxes
 
