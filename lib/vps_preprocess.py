@@ -11,9 +11,11 @@ LIB_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_PATH = os.path.join(LIB_PATH, '..', 'data')
 CACHE_PATH = os.path.join(LIB_PATH, '..', 'cachedir')
 
-def write_annotations(imgset_list, output):
-    with output.open('w') as f:
-        img_idx = 0
+def write_annotations(task, imgset_list):
+    img_total = sum(map(lambda x: len(x['set']), imgset_list))
+    img_idx = 0
+
+    with task.output().open('w') as f:
         for imgset in imgset_list:
             for item in imgset['set']:
                 img_annot = pascal3d.Annotations(
@@ -24,6 +26,18 @@ def write_annotations(imgset_list, output):
                     f.write('# {}\n'.format(img_idx))
                     f.write(img_annot.tolines())
                     img_idx += 1
+
+                    if img_idx % 100 == 0:
+                        task.set_status_message(
+                            'Progress: {} / {}'.format(img_idx, img_total))
+                        task.set_progress_percentage(
+                            math.floor(100 * img_idx / img_total))
+
+                else:
+                    img_total -= 1
+
+        task.set_status_message('Progress: {} / {}'.format(img_total, img_total))
+        task.set_progress_percentage(100)
 
 class CollectJointData(luigi.Task):
     phase = luigi.ChoiceParameter(choices=['train', 'val'], var_type=str)
@@ -45,7 +59,7 @@ class CollectJointData(luigi.Task):
         imagenet_set = imagenet.read_joint_set(classes, self.phase)
         imgset_list = [{'dataset': pascal, 'set': pascal_set},
                        {'dataset': imagenet, 'set': imagenet_set}]
-        write_annotations(imgset_list, self.output())
+        write_annotations(self, imgset_list)
 
 class CollectClassData(luigi.Task):
     annotated_classes = pascal3d.annotated_classes()
@@ -68,7 +82,7 @@ class CollectClassData(luigi.Task):
         imagenet_set = imagenet.read_class_set(self.cls, self.phase)
         imgset_list = [{'dataset': pascal, 'set': pascal_set},
                        {'dataset': imagenet, 'set': imagenet_set}]
-        write_annotations(imgset_list, self.output())
+        write_annotations(self, imgset_list)
 
 class UnzipPascal3d(luigi.Task):
     def output(self):
