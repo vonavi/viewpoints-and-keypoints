@@ -5,6 +5,7 @@
 !/cachedir/snapshots/.gitkeep
 
 # Ignore image data
-/data/
+/data/*
+!/data/segkps.zip
 
 __pycache__/
