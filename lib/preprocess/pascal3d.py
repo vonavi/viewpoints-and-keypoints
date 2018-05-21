@@ -1,125 +1,11 @@
-import errno
-import os
-
 import math
-import collections
 import numpy as np
 import scipy.io as sio
 from sklearn.utils.extmath import cartesian
 
-CLASSES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car',
-           'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike',
-           'person', 'plant', 'sheep', 'sofa', 'train', 'tvmonitor']
-
-def annotated_classes():
-    annotated_list = [0, 1, 3, 4, 5, 6, 8, 10, 13, 17, 18, 19]
-    classes = []
-    for idx, cls in enumerate(CLASSES):
-        if idx in annotated_list:
-            classes.append(cls)
-    return classes
-
-class Dataset(object):
-    def __init__(self, name, root):
-        self.name = name
-        self.root = os.path.normpath(root)
-
-    def matpath(self, cls, imgid):
-        return os.path.join(
-            self.root, 'Annotations', cls + '_' + self.name, imgid + '.mat')
-
-    def read_sets_for_classes(self, setpaths, classes):
-        imgid_dict = self.classes_by_imgid(classes)
-
-        records = []
-        for path in setpaths:
-            with open(path, 'r') as f:
-                for line in f.read().splitlines():
-                    words = line.split()
-                    if len(words) > 1 and words[1] != '1':
-                        continue
-
-                    imgid = words[0]
-                    classes = imgid_dict[imgid]
-                    if not classes:
-                        continue
-
-                    item = dict()
-                    item['imgid'] = imgid
-                    item['classes'] = classes
-                    records.append(item)
-
-        return records
-
-    def classes_by_imgid(self, classes):
-        cls_dict = dict()
-        for cls in classes:
-            cls_dir = os.path.join(
-                self.root, 'Annotations', cls + '_' + self.name)
-            filenames = os.listdir(cls_dir)
-            cls_dict[cls] = list(map(lambda f: os.path.splitext(f)[0], filenames))
-
-        imgid_dict = collections.defaultdict(list)
-        for cls, indexes in cls_dict.items():
-            for imgid in indexes:
-                imgid_dict[imgid].append(cls)
-
-        return imgid_dict
-
-class Pascal(Dataset):
-    def __init__(self, root):
-        super().__init__('pascal', root)
-
-    def imgpath(self, _, filename):
-        imgpath = os.path.join(
-            self.root, 'PASCAL', 'VOCdevkit', 'VOC2012', 'JPEGImages', filename)
-        if not os.path.isfile(imgpath):
-            raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), imgpath)
-        return imgpath
-
-    def read_class_set(self, cls, phase):
-        setname = cls + '_' + phase + '.txt'
-        setpath = os.path.join(
-            self.root, 'PASCAL', 'VOCdevkit', 'VOC2012',
-            'ImageSets', 'Main', setname)
-        return self.read_sets_for_classes([setpath], [cls])
-
-    def read_joint_set(self, classes, phase):
-        setname = phase + '.txt'
-        setpath = os.path.join(
-            self.root, 'PASCAL', 'VOCdevkit', 'VOC2012',
-            'ImageSets', 'Main', setname)
-        return self.read_sets_for_classes([setpath], classes)
-
-class Imagenet(Dataset):
-    def __init__(self, root):
-        super().__init__('imagenet', root)
-
-    def imgpath(self, cls, filename):
-        imgpath = os.path.join(
-            self.root, 'Images', cls + '_' + self.name, filename)
-        if not os.path.isfile(imgpath):
-            raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), imgpath)
-        return imgpath
-
-    def read_class_set(self, cls, phase):
-        setname = '_'.join([cls, self.name, phase]) + '.txt'
-        setpath = os.path.join(self.root, 'Image_sets', setname)
-        return self.read_sets_for_classes([setpath], [cls])
-
-    def read_joint_set(self, classes, phase):
-        setpaths = []
-        for cls in classes:
-            setname = '_'.join([cls, self.name, phase]) + '.txt'
-            path = os.path.join(self.root, 'Image_sets', setname)
-            setpaths.append(path)
-        return self.read_sets_for_classes(setpaths, classes)
-
 class Pose(object):
-    def __init__(self, cls, bbox, azimuth, elevation, theta):
-        self.cls = cls
+    def __init__(self, class_idx, bbox, azimuth, elevation, theta):
+        self.class_idx = class_idx
         self.bbox = bbox
         self.azimuth = azimuth
         self.elevation = elevation
@@ -128,7 +14,7 @@ class Pose(object):
     def toline(self):
         # Object class should be 1-indexed
         return '{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(
-            CLASSES.index(self.cls) + 1, 1.0, *self.bbox,
+            self.class_idx + 1, 1.0, *self.bbox,
             math.ceil(self.theta * 10.5/180 + 9.5),
             math.ceil(- self.theta * 10.5/180 + 9.5),
             math.ceil(self.elevation * 10.5/180 + 9.5),
@@ -158,10 +44,11 @@ class Annotations(object):
                 self.__height = size['height'][0][0]
                 self.__depth = size['depth'][0][0]
 
+            class_idx = dataset.CLASSES.index(cls)
             objects = record['objects'][0]
-            self.read_class_data(cls, objects)
+            self.read_class_data(cls, class_idx, objects)
 
-    def read_class_data(self, cls, objects):
+    def read_class_data(self, cls, class_idx, objects):
         for obj in list(objects):
             obj_class = obj['class'][0]
             difficult = bool(obj['difficult'][0][0])
@@ -187,7 +74,7 @@ class Annotations(object):
 
             for box in self.overlapping_boxes(bbox):
                 pose = Pose(
-                    cls=obj_class, bbox=box, azimuth=azimuth,
+                    class_idx=class_idx, bbox=box, azimuth=azimuth,
                     elevation=elevation, theta=theta)
                 self.__data.append(pose)
 

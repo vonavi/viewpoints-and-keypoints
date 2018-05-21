@@ -5,6 +5,7 @@ import math
 import zipfile
 import luigi
 
+from datasets.pascal_voc import *
 from preprocess import pascal3d
 
 LIB_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -51,18 +52,18 @@ class CollectJointData(luigi.Task):
 
     def run(self):
         pascal3d_root = self.input().path
-        classes = pascal3d.annotated_classes()
+        classes = Dataset.annotated_classes()
 
-        pascal = pascal3d.Pascal(pascal3d_root)
+        pascal = Pascal(pascal3d_root)
         pascal_set = pascal.read_joint_set(classes, self.phase)
-        imagenet = pascal3d.Imagenet(pascal3d_root)
+        imagenet = Imagenet(pascal3d_root)
         imagenet_set = imagenet.read_joint_set(classes, self.phase)
         imgset_list = [{'dataset': pascal, 'set': pascal_set},
                        {'dataset': imagenet, 'set': imagenet_set}]
         write_annotations(self, imgset_list)
 
 class CollectClassData(luigi.Task):
-    annotated_classes = pascal3d.annotated_classes()
+    annotated_classes = Dataset.annotated_classes()
     cls = luigi.ChoiceParameter(choices=annotated_classes, var_type=str)
     phase = luigi.ChoiceParameter(choices=['train', 'val'], var_type=str)
 
@@ -76,9 +77,9 @@ class CollectClassData(luigi.Task):
     def run(self):
         pascal3d_root = self.input().path
 
-        pascal = pascal3d.Pascal(pascal3d_root)
+        pascal = Pascal(pascal3d_root)
         pascal_set = pascal.read_class_set(self.cls, self.phase)
-        imagenet = pascal3d.Imagenet(pascal3d_root)
+        imagenet = Imagenet(pascal3d_root)
         imagenet_set = imagenet.read_class_set(self.cls, self.phase)
         imgset_list = [{'dataset': pascal, 'set': pascal_set},
                        {'dataset': imagenet, 'set': imagenet_set}]
