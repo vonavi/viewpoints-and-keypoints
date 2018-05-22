@@ -40,7 +40,7 @@ def write_annotations(task, imgset_list):
         task.set_status_message('Progress: {} / {}'.format(img_total, img_total))
         task.set_progress_percentage(100)
 
-class CollectJointData(luigi.Task):
+class CreateVpsJoint(luigi.Task):
     phase = luigi.ChoiceParameter(choices=['train', 'val'], var_type=str)
 
     def output(self):
@@ -62,7 +62,7 @@ class CollectJointData(luigi.Task):
                        {'dataset': imagenet, 'set': imagenet_set}]
         write_annotations(self, imgset_list)
 
-class CollectClassData(luigi.Task):
+class CreateVpsClass(luigi.Task):
     annotated_classes = Dataset.annotated_classes()
     cls = luigi.ChoiceParameter(choices=annotated_classes, var_type=str)
     phase = luigi.ChoiceParameter(choices=['train', 'val'], var_type=str)
