@@ -83,23 +83,21 @@ class Annotations(object):
         return (x1 < self.__width) and (y1 < self.__height) and \
             (x2 >= 0) and (y2 >= 0) and (x2 >= x1) and (y2 >= y1)
 
-    def overlapping_boxes(self, bbox):
+    @staticmethod
+    def overlapping_boxes(bbox):
         dx = float(bbox[2] - bbox[0] + 1) / float(6)
         dx = int(round(dx))
         dy = float(bbox[3] - bbox[1] + 1) / float(6)
         dy = int(round(dy))
 
         def shift_bbox(shift):
-            x1 = max(bbox[0] + shift[0] * dx, 0)
-            y1 = max(bbox[1] + shift[1] * dy, 0)
-            x2 = min(bbox[2] + shift[2] * dx, self.__width - 1)
-            y2 = min(bbox[3] + shift[3] * dy, self.__height - 1)
-            return [x1, y1, x2, y2]
+            return [bbox[0] + shift[0] * dx,
+                    bbox[1] + shift[1] * dy,
+                    bbox[2] + shift[2] * dx,
+                    bbox[3] + shift[3] * dy]
 
         shifts = cartesian(np.tile(np.array([-1, 0, 1]), (4, 1)))
-        boxes = np.apply_along_axis(shift_bbox, 1, shifts)
-        boxes = np.unique(boxes, axis=0)
-        return boxes
+        return np.apply_along_axis(shift_bbox, 1, shifts)
 
     def is_empty(self):
         return len(self.__data) == 0
