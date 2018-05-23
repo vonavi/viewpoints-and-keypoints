@@ -6,15 +6,15 @@ import collections
 class Dataset(object):
     CLASSES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car',
                'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike',
-               'person', 'plant', 'sheep', 'sofa', 'train', 'tvmonitor']
+               'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+    ANNOTATED = [0, 1, 3, 4, 5, 6, 8, 10, 13, 17, 18, 19]
 
     @classmethod
-    def annotated_classes(dataset):
-        annotated_list = [0, 1, 3, 4, 5, 6, 8, 10, 13, 17, 18, 19]
+    def annotated_classes(cls):
         classes = []
-        for idx, cls in enumerate(dataset.CLASSES):
-            if idx in annotated_list:
-                classes.append(cls)
+        for idx, class_name in enumerate(cls.CLASSES):
+            if idx in cls.ANNOTATED:
+                classes.append(class_name)
         return classes
 
     def __init__(self, name, root):
