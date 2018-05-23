@@ -49,7 +49,7 @@ class Annotations(object):
             self.read_class_data(cls, class_idx, objects)
 
     def read_class_data(self, cls, class_idx, objects):
-        for obj in list(objects):
+        for obj in objects:
             obj_class = obj['class'][0]
             difficult = bool(obj['difficult'][0][0])
             if obj_class != cls or difficult:
@@ -61,16 +61,16 @@ class Annotations(object):
                 if occluded or truncated:
                     continue
 
-            viewpoint = obj['viewpoint'][0][0]
-            azimuth = viewpoint['azimuth'][0][0]
-            elevation = viewpoint['elevation'][0][0]
-            theta = viewpoint['theta'][0][0]
-
             # Convert the bounding box from 1- to 0-indexed
             bbox = obj['bbox'][0] - 1
             bbox = np.round(bbox).astype(np.int)
             if not self.is_bbox_valid(bbox):
                 continue
+
+            viewpoint = obj['viewpoint'][0][0]
+            azimuth = viewpoint['azimuth'][0][0]
+            elevation = viewpoint['elevation'][0][0]
+            theta = viewpoint['theta'][0][0]
 
             for box in self.overlapping_boxes(bbox):
                 pose = Pose(

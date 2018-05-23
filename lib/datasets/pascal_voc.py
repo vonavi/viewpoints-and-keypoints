@@ -64,8 +64,9 @@ class Dataset(object):
         return imgid_dict
 
 class Pascal(Dataset):
-    def __init__(self, root):
+    def __init__(self, root, segkps_dir=None):
         super().__init__('pascal', root)
+        self.segkps_dir = segkps_dir
 
     def imgpath(self, _, filename):
         imgpath = os.path.join(
@@ -74,6 +75,9 @@ class Pascal(Dataset):
             raise FileNotFoundError(
                 errno.ENOENT, os.strerror(errno.ENOENT), imgpath)
         return imgpath
+
+    def segkps_path(self, cls):
+        return os.path.join(self.segkps_dir, cls + '.mat')
 
     def read_class_set(self, cls, phase):
         setname = cls + '_' + phase + '.txt'
