@@ -5,28 +5,28 @@ from sklearn.utils.extmath import cartesian
 
 class Pose(object):
     def __init__(self, class_idx, bbox, azimuth, elevation, theta):
-        self.class_idx = class_idx
-        self.bbox = bbox
-        self.azimuth = azimuth
-        self.elevation = elevation
-        self.theta = theta
+        self.__class_idx = class_idx
+        self.__bbox = bbox
+        self.__azimuth = azimuth
+        self.__elevation = elevation
+        self.__theta = theta
 
     def toline(self):
         # Object class should be 1-indexed
         return '{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(
-            self.class_idx + 1, 1.0, *self.bbox,
-            math.ceil(self.theta * 10.5/180 + 9.5),
-            math.ceil(- self.theta * 10.5/180 + 9.5),
-            math.ceil(self.elevation * 10.5/180 + 9.5),
-            math.ceil(self.elevation * 10.5/180 + 9.5),
-            math.floor(self.azimuth * 10.5/180),
-            20 - math.floor(self.azimuth * 10.5/180),
-            math.ceil(self.theta * 3.5/180 + 2.5),
-            math.ceil(- self.theta * 3.5/180 + 2.5),
-            math.ceil(self.elevation * 3.5/180 + 2.5),
-            math.ceil(self.elevation * 3.5/180 + 2.5),
-            math.floor(self.azimuth * 3.5/180),
-            6 - math.floor(self.azimuth * 3.5/180))
+            self.__class_idx + 1, 1.0, *self.__bbox,
+            math.ceil(self.__theta * 10.5/180 + 9.5),
+            math.ceil(- self.__theta * 10.5/180 + 9.5),
+            math.ceil(self.__elevation * 10.5/180 + 9.5),
+            math.ceil(self.__elevation * 10.5/180 + 9.5),
+            math.floor(self.__azimuth * 10.5/180),
+            20 - math.floor(self.__azimuth * 10.5/180),
+            math.ceil(self.__theta * 3.5/180 + 2.5),
+            math.ceil(- self.__theta * 3.5/180 + 2.5),
+            math.ceil(self.__elevation * 3.5/180 + 2.5),
+            math.ceil(self.__elevation * 3.5/180 + 2.5),
+            math.floor(self.__azimuth * 3.5/180),
+            6 - math.floor(self.__azimuth * 3.5/180))
 
 class Annotations(object):
     def __init__(self, classes, dataset, imgid, exclude_occluded=False):
