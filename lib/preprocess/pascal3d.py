@@ -29,7 +29,7 @@ class Pose(object):
             6 - math.floor(self.__azimuth * 3.5/180))
 
 class Annotations(object):
-    def __init__(self, classes, dataset, imgid, exclude_occluded=False):
+    def __init__(self, classes, dataset, imgid, exclude_occluded=True):
         self.__exclude_occluded = exclude_occluded
         self.__data = []
 

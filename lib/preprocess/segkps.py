@@ -82,7 +82,7 @@ class Keypoints(object):
         return gaussian
 
 class Annotations(object):
-    def __init__(self, classes, dataset, imgid, exclude_occluded=False):
+    def __init__(self, classes, dataset, imgid, exclude_occluded=True):
         self.__exclude_occluded = exclude_occluded
         self.__data = []
         self.__parts = self.get_parts_from(dataset)
