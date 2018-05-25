@@ -85,9 +85,7 @@ class Annotations(object):
     def __init__(self, classes, dataset, imgid, exclude_occluded=True):
         self.__exclude_occluded = exclude_occluded
         self.__data = []
-        self.__parts = self.get_parts_from(dataset)
-        start_indexes, self.__total_kps = self.get_start_indexes(dataset)
-        kps_flips = self.keypoint_flips(self.__parts)
+        self.__total_kps = dataset.total_kps
 
         for idx, cls in enumerate(classes):
             data = sio.loadmat(dataset.matpath(cls, imgid))
@@ -116,59 +114,8 @@ class Annotations(object):
             objects = record['objects'][0][obj_indexes]
             self.read_class_data(
                 cls, class_idx, objects, coordinates,
-                start_idx=start_indexes[class_idx],
-                kps_flips=kps_flips[class_idx])
-
-    @staticmethod
-    def get_parts_from(dataset):
-        parts = []
-        for cls in dataset.CLASSES:
-            segkps = sio.loadmat(dataset.segkps_path(cls))
-            keypoints = segkps['keypoints'][0][0]
-
-            def gen_labels():
-                for row in keypoints['labels']:
-                    for label in row[0]:
-                        yield label
-            parts.append(np.stack(gen_labels()))
-
-        return parts
-
-    def get_start_indexes(self, dataset):
-        indexes = np.zeros(len(self.__parts), dtype=np.int)
-        start_idx = 0
-        for idx in dataset.ANNOTATED:
-            indexes[idx] = start_idx
-            start_idx += len(self.__parts[idx])
-        return (indexes, start_idx)
-
-    @staticmethod
-    def keypoint_flips(parts):
-        kps_flips = []
-        str_flips = {'L_': 'R_', 'Left': 'Right', 'left': 'right'}
-
-        for class_parts in parts:
-            flip_dict = dict()
-            for idx, part_name in enumerate(class_parts):
-                left_to_right = part_name
-                for str_left, str_right in str_flips.items():
-                    left_to_right = left_to_right.replace(str_left, str_right)
-
-                right_to_left = part_name
-                for str_left, str_right in str_flips.items():
-                    right_to_left = right_to_left.replace(str_right, str_left)
-
-                if left_to_right != part_name:
-                    flip_dict[left_to_right] = idx
-                elif right_to_left != part_name:
-                    flip_dict[right_to_left] = idx
-                else:
-                    flip_dict[part_name] = idx
-
-            flips = np.array([flip_dict[name] for name in class_parts])
-            kps_flips.append(flips)
-
-        return kps_flips
+                start_idx=dataset.start_indexes[class_idx],
+                kps_flips=dataset.kps_flips[class_idx])
 
     @staticmethod
     def records_by_imgid(imgid_mat):

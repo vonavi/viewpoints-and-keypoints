@@ -2,6 +2,8 @@ import errno
 import os
 
 import collections
+import numpy as np
+import scipy.io as sio
 
 class Dataset(object):
     CLASSES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car',
@@ -67,6 +69,9 @@ class Pascal(Dataset):
     def __init__(self, root, segkps_dir=None):
         super().__init__('pascal', root)
         self.__segkps_dir = segkps_dir
+        parts = self.__get_parts()
+        self.start_indexes, self.total_kps = self.__get_start_indexes(parts)
+        self.kps_flips = self.__get_keypoints_flips(parts)
 
     def imgpath(self, _, filename):
         imgpath = os.path.join(
@@ -92,6 +97,57 @@ class Pascal(Dataset):
             self.root, 'PASCAL', 'VOCdevkit', 'VOC2012',
             'ImageSets', 'Main', setname)
         return self.read_sets_for_classes([setpath], classes)
+
+    def __get_parts(self):
+        parts = []
+        for cls in self.CLASSES:
+            segkps = sio.loadmat(self.segkps_path(cls))
+            keypoints = segkps['keypoints'][0][0]
+
+            def gen_labels():
+                for row in keypoints['labels']:
+                    for label in row[0]:
+                        yield label
+            parts.append(np.stack(gen_labels()))
+
+        return parts
+
+    @classmethod
+    def __get_start_indexes(cls, parts):
+        indexes = np.zeros(len(parts), dtype=np.int)
+        start_idx = 0
+        for idx in cls.ANNOTATED:
+            indexes[idx] = start_idx
+            start_idx += len(parts[idx])
+        return (indexes, start_idx)
+
+    @staticmethod
+    def __get_keypoints_flips(parts):
+        kps_flips = []
+        str_flips = {'L_': 'R_', 'Left': 'Right', 'left': 'right'}
+
+        for class_parts in parts:
+            flip_dict = dict()
+            for idx, part_name in enumerate(class_parts):
+                left_to_right = part_name
+                for str_left, str_right in str_flips.items():
+                    left_to_right = left_to_right.replace(str_left, str_right)
+
+                right_to_left = part_name
+                for str_left, str_right in str_flips.items():
+                    right_to_left = right_to_left.replace(str_right, str_left)
+
+                if left_to_right != part_name:
+                    flip_dict[left_to_right] = idx
+                elif right_to_left != part_name:
+                    flip_dict[right_to_left] = idx
+                else:
+                    flip_dict[part_name] = idx
+
+            flips = np.array([flip_dict[name] for name in class_parts])
+            kps_flips.append(flips)
+
+        return kps_flips
 
 class Imagenet(Dataset):
     def __init__(self, root):
