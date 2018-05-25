@@ -24,28 +24,24 @@ class Keypoints(object):
         normalized = self.normalized_coords()
         gaussian = self.gaussian_coords(normalized, HEAT_MAP_THRESH)
 
-        kps_str = ''
-        count = 0
-        for kp_idx, kps in zip(self.__indexes, gaussian):
-            if kps[1].size == 0:
-                continue
+        kps_len = sum(map(lambda tup: len(tup[1]), gaussian))
+        kps_start = self.__start_idx * HEAT_MAP_DIMS[0] * HEAT_MAP_DIMS[1]
+        kps_end = kps_start + \
+            len(self.__kps_flips) * HEAT_MAP_DIMS[0] * HEAT_MAP_DIMS[1] - 1
+        kps_str = '{} {} {}'.format(kps_len, kps_start, kps_end)
 
+        for kp_idx, kps in zip(self.__indexes, gaussian):
             flip_kp_idx = self.__kps_flips[kp_idx]
             kp_idx += self.__start_idx
             flip_kp_idx += self.__start_idx
+
             for coords, value in zip(*kps):
-                count += 1
                 idx = kp_idx * HEAT_MAP_DIMS[0] * HEAT_MAP_DIMS[1] + \
                     coords[1] * HEAT_MAP_DIMS[0] + coords[0]
                 flip_idx = flip_kp_idx * HEAT_MAP_DIMS[0] * HEAT_MAP_DIMS[1] + \
                     coords[1] * HEAT_MAP_DIMS[0] + \
                     (HEAT_MAP_DIMS[0] - 1 - coords[0])
                 kps_str += ' {} {} {}'.format(idx, flip_idx, value)
-
-        kps_start = self.__start_idx * HEAT_MAP_DIMS[0] * HEAT_MAP_DIMS[1]
-        kps_end = kps_start + \
-            len(self.__kps_flips) * HEAT_MAP_DIMS[0] * HEAT_MAP_DIMS[1] - 1
-        kps_str = '{} {} {}'.format(count, kps_start, kps_end) + kps_str
 
         # Object class should be 1-indexed
         return '{} {} {} {} {} {} {}\n'.format(
