@@ -1,4 +1,5 @@
 luigi
 numpy
+Pillow
 scikit-learn
 scipy
