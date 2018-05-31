@@ -2,7 +2,8 @@ import collections
 import numpy as np
 import scipy.io as sio
 from scipy.stats import norm
-from sklearn.utils.extmath import cartesian
+
+from utils.bbox import *
 
 HEAT_MAP_DIMS = [6, 6]
 HEAT_MAP_THRESH = 0.2
@@ -139,35 +140,14 @@ class Annotations(object):
             # Convert the bounding box from 1- to 0-indexed
             bbox = obj['bbox'][0] - 1
             bbox = np.round(bbox).astype(np.int)
-            if not self.is_bbox_valid(bbox):
+            if not is_bbox_valid(bbox, width=self.__width, height=self.__height):
                 continue
 
-            for box in self.overlapping_boxes(bbox):
+            for box in bbox_overlaps(bbox):
                 keypoints = Keypoints(
                     class_idx=class_idx, bbox=box, coords=coords,
                     start_idx=start_idx, kps_flips=kps_flips)
                 self.__data.append(keypoints)
-
-    def is_bbox_valid(self, bbox):
-        x1, y1, x2, y2 = bbox
-        return (x1 < self.__width) and (y1 < self.__height) and \
-            (x2 >= 0) and (y2 >= 0) and (x2 >= x1) and (y2 >= y1)
-
-    @staticmethod
-    def overlapping_boxes(bbox):
-        dx = float(bbox[2] - bbox[0] + 1) / float(6)
-        dx = int(round(dx))
-        dy = float(bbox[3] - bbox[1] + 1) / float(6)
-        dy = int(round(dy))
-
-        def shift_bbox(shift):
-            return [bbox[0] + shift[0] * dx,
-                    bbox[1] + shift[1] * dy,
-                    bbox[2] + shift[2] * dx,
-                    bbox[3] + shift[3] * dy]
-
-        shifts = cartesian(np.tile(np.array([-1, 0, 1]), (4, 1)))
-        return np.apply_along_axis(shift_bbox, 1, shifts)
 
     def is_empty(self):
         return len(self.__data) == 0
