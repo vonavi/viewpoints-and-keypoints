@@ -68,10 +68,11 @@ class Dataset(object):
 class Pascal(Dataset):
     def __init__(self, root, segkps_dir=None):
         super().__init__('pascal', root)
-        self.__segkps_dir = segkps_dir
-        parts = self.__get_parts()
-        self.start_indexes, self.total_kps = self.__get_start_indexes(parts)
-        self.kps_flips = self.__get_keypoints_flips(parts)
+        if segkps_dir is not None:
+            self.__segkps_dir = segkps_dir
+            parts = self.__get_parts()
+            self.start_indexes, self.total_kps = self.__get_start_indexes(parts)
+            self.kps_flips = self.__get_keypoints_flips(parts)
 
     def imgpath(self, _, filename):
         imgpath = os.path.join(
