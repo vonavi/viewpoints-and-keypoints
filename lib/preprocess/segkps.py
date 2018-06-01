@@ -66,7 +66,6 @@ class Annotations(object):
 
             # Convert the bounding box from 1- to 0-indexed
             bbox = obj['bbox'][0] - 1
-            bbox = np.round(bbox).astype(np.int)
             if not is_bbox_valid(bbox, width=self.__width, height=self.__height):
                 continue
 
