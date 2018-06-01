@@ -11,11 +11,9 @@ class Keypoints(object):
         self.__start_idx = start_idx
         self.__kps_flips = kps_flips
 
-        all_indexes = np.arange(coords.shape[0])
-        bad_indexes = np.where(np.isnan(coords))[0]
-        good_indexes = np.setdiff1d(all_indexes, bad_indexes)
-        self.__indexes = good_indexes
-        self.__coords = coords[good_indexes]
+        good_coords = np.all(~np.isnan(coords), axis=1)
+        self.__indexes = good_coords.nonzero()[0]
+        self.__coords = coords[good_coords]
 
     def toline(self):
         normalized = self.normalized_coords()
