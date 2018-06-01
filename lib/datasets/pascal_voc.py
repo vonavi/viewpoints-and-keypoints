@@ -70,6 +70,7 @@ class Pascal(Dataset):
         super().__init__('pascal', root)
         if segkps_dir is not None:
             self.__segkps_dir = segkps_dir
+            self.records_by_imgid = self.__records_by_imgid()
             parts = self.__get_parts()
             self.start_indexes, self.total_kps = self.__get_start_indexes(parts)
             self.kps_flips = self.__get_keypoints_flips(parts)
@@ -98,6 +99,18 @@ class Pascal(Dataset):
             self.root, 'PASCAL', 'VOCdevkit', 'VOC2012',
             'ImageSets', 'Main', setname)
         return self.read_sets_for_classes([setpath], classes)
+
+    def __records_by_imgid(self):
+        records_dict = collections.defaultdict(
+            lambda: collections.defaultdict(list))
+        for cls in self.annotated_classes():
+            segkps = sio.loadmat(self.segkps_path(cls))
+            keypoints = segkps['keypoints'][0][0]
+            for idx, row in enumerate(keypoints['voc_image_id']):
+                imgid = row[0][0]
+                records_dict[imgid][cls].append(idx)
+
+        return records_dict
 
     def __get_parts(self):
         parts = []

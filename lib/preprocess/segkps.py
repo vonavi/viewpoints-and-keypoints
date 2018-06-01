@@ -11,6 +11,7 @@ class Annotations(object):
         self.__data = []
         self.__total_kps = dataset.total_kps
 
+        records_dict = dataset.records_by_imgid
         for idx, cls in enumerate(classes):
             data = sio.loadmat(dataset.matpath(cls, imgid))
             record = data['record'][0][0]
@@ -24,15 +25,14 @@ class Annotations(object):
 
             segkps = sio.loadmat(dataset.segkps_path(cls))
             keypoints = segkps['keypoints'][0][0]
-            imgid_dict = self.records_by_imgid(keypoints['voc_image_id'])
-            rec_indexes = imgid_dict[imgid]
+            rec_indexes = records_dict[imgid][cls]
 
             # Make coordinates of keypoints to be 0-indexed
             coordinates = keypoints['coords'][rec_indexes] - 1
             obj_indexes = np.squeeze(
                 keypoints['voc_rec_id'][rec_indexes], axis=1)
             # Make record indexes to be 0-based
-            obj_indexes = obj_indexes - 1
+            obj_indexes -= 1
 
             class_idx = dataset.CLASSES.index(cls)
             objects = record['objects'][0][obj_indexes]
@@ -40,14 +40,6 @@ class Annotations(object):
                 cls, class_idx, objects, coordinates,
                 start_idx=dataset.start_indexes[class_idx],
                 kps_flips=dataset.kps_flips[class_idx])
-
-    @staticmethod
-    def records_by_imgid(imgid_mat):
-        imgid_dict = collections.defaultdict(list)
-        for idx, row in enumerate(imgid_mat):
-            imgid = row[0][0]
-            imgid_dict[imgid].append(idx)
-        return imgid_dict
 
     def read_class_data(
             self, cls, class_idx, objects, coordinates, start_idx, kps_flips):
