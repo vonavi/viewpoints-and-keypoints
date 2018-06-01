@@ -6,11 +6,18 @@ import luigi
 
 from vps_preprocess import UnzipPascal3d
 from datasets.pascal_voc import Dataset, Pascal
+from preprocess.keypoints import HeatMap
 from preprocess import segkps
 
 LIB_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_PATH = os.path.join(LIB_PATH, '..', 'data')
 CACHE_PATH = os.path.join(LIB_PATH, '..', 'cachedir')
+
+def dims_to_str(dims):
+    if dims[0] == dims[1]:
+        return str(dims[0])
+    else:
+        return '{}x{}'.format(*dims)
 
 def write_annotations(task, dataset, imgset):
     img_total = len(imgset)
@@ -40,10 +47,13 @@ def write_annotations(task, dataset, imgset):
 
 class CreateKpsJoint(luigi.Task):
     phase = luigi.ChoiceParameter(choices=['train', 'val'], var_type=str)
+    heatmap_dims = luigi.TupleParameter(significant=True)
 
     def output(self):
         return luigi.LocalTarget(
-            os.path.join(CACHE_PATH, 'kps_joint', self.phase + '.txt'))
+            os.path.join(
+                CACHE_PATH, 'kps_joint',
+                self.phase + dims_to_str(self.heatmap_dims) + '.txt'))
 
     def requires(self):
         return [UnzipPascal3d(), UnzipSegKps()]
@@ -53,6 +63,7 @@ class CreateKpsJoint(luigi.Task):
         segkps_dir = self.input()[1].path
         classes = Dataset.annotated_classes()
 
+        HeatMap.dims = self.heatmap_dims
         pascal = Pascal(pascal3d_root, segkps_dir)
         pascal_set = pascal.read_joint_set(classes, self.phase)
         write_annotations(self, pascal, pascal_set)
@@ -61,10 +72,13 @@ class CreateKpsClass(luigi.Task):
     annotated_classes = Dataset.annotated_classes()
     cls = luigi.ChoiceParameter(choices=annotated_classes, var_type=str)
     phase = luigi.ChoiceParameter(choices=['train', 'val'], var_type=str)
+    heatmap_dims = luigi.TupleParameter(significant=True)
 
     def output(self):
         return luigi.LocalTarget(
-            os.path.join(CACHE_PATH, 'kps_' + self.cls, self.phase + '.txt'))
+            os.path.join(
+                CACHE_PATH, 'kps_' + self.cls,
+                self.phase + dims_to_str(self.heatmap_dims) + '.txt'))
 
     def requires(self):
         return [UnzipPascal3d(), UnzipSegKps()]
@@ -73,6 +87,7 @@ class CreateKpsClass(luigi.Task):
         pascal3d_root = self.input()[0].path
         segkps_dir = self.input()[1].path
 
+        HeatMap.dims = self.heatmap_dims
         pascal = Pascal(pascal3d_root, segkps_dir)
         pascal_set = pascal.read_class_set(self.cls, self.phase)
         write_annotations(self, pascal, pascal_set)

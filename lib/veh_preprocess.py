@@ -5,11 +5,18 @@ import random
 import luigi
 
 from datasets.veh_keypoints import VehKeypoints
+from preprocess.keypoints import HeatMap
 from preprocess import veh_keypoints
 
 LIB_PATH = os.path.dirname(os.path.realpath(__file__))
 CACHE_PATH = os.path.join(LIB_PATH, '..', 'cachedir')
 VEH_KEYPOINTS_PATH = os.path.join(LIB_PATH, '..', 'data', 'veh_keypoints')
+
+def dims_to_str(dims):
+    if dims[0] == dims[1]:
+        return str(dims[0])
+    else:
+        return '{}x{}'.format(*dims)
 
 def write_annotations(task, dataset, imgset):
     img_total = len(imgset)
@@ -39,10 +46,13 @@ def write_annotations(task, dataset, imgset):
 
 class CreateVehKeypoints(luigi.Task):
     phase = luigi.ChoiceParameter(choices=['train', 'val'], var_type=str)
+    heatmap_dims = luigi.TupleParameter(significant=True)
 
     def output(self):
         return luigi.LocalTarget(
-            os.path.join(CACHE_PATH, 'veh_keypoints', self.phase + '.txt'))
+            os.path.join(
+                CACHE_PATH, 'veh_keypoints',
+                self.phase + dims_to_str(self.heatmap_dims) + '.txt'))
 
     def requires(self):
         return TrainValImageSets()
@@ -53,6 +63,7 @@ class CreateVehKeypoints(luigi.Task):
         else:
             imgset_path = self.input()[1].path
 
+        HeatMap.dims = self.heatmap_dims
         dataset = VehKeypoints(root=VEH_KEYPOINTS_PATH)
         imgset = dataset.read_set(imgset_path)
         write_annotations(self, dataset, imgset)

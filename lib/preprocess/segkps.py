@@ -2,7 +2,7 @@ import collections
 import numpy as np
 import scipy.io as sio
 
-from preprocess.keypoints import HEAT_MAP_DIMS, Keypoints
+from preprocess.keypoints import HeatMap, Keypoints
 from utils.bbox import *
 
 class Annotations(object):
@@ -73,7 +73,7 @@ class Annotations(object):
     def tolines(self):
         lines = '{}\n{}\n{}\n{}\n{}\n'.format(
             self.__imgpath, self.__depth, self.__height, self.__width,
-            self.__total_kps * HEAT_MAP_DIMS[0] * HEAT_MAP_DIMS[1])
+            self.__total_kps * HeatMap.dims[0] * HeatMap.dims[1])
         lines += '{}\n'.format(len(self.__data))
         lines += ''.join(map(lambda x: x.toline(), self.__data))
         return lines
