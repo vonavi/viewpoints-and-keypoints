@@ -6,8 +6,9 @@ import luigi
 
 from vps_preprocess import UnzipPascal3d
 from datasets.pascal_voc import Dataset, Pascal
-from preprocess.keypoints import HeatMap
-from preprocess import segkps
+from preprocess.keypoints import HeatMap, Keypoints
+from annotations.segkps import Annotations
+from utils.bbox import bbox_overlaps
 
 LIB_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_PATH = os.path.join(LIB_PATH, '..', 'data')
@@ -25,12 +26,28 @@ def write_annotations(task, dataset, imgset):
 
     with task.output().open('w') as f:
         for item in imgset:
-            img_annot = segkps.Annotations(
+            img_annot = Annotations(
                 classes=item['classes'], dataset=dataset, imgid=item['imgid'])
+            keypoints = []
 
-            if not img_annot.is_empty():
+            for (cls, bboxes), coordinates in \
+                zip(img_annot.bboxes.items(), img_annot.coords.values()):
+
+                class_idx = dataset.CLASSES.index(cls)
+                start_idx = dataset.start_indexes[class_idx]
+                kps_flips = dataset.kps_flips[class_idx]
+                for obj_bbox, coords in zip(bboxes, coordinates):
+                    for box in bbox_overlaps(obj_bbox):
+                        kps = Keypoints(
+                            class_idx=class_idx, bbox=box, coords=coords,
+                            start_idx=start_idx, kps_flips=kps_flips)
+                        keypoints.append(kps)
+
+            if keypoints:
                 f.write('# {}\n'.format(img_idx))
                 f.write(img_annot.tolines())
+                f.write('{}\n'.format(len(keypoints)))
+                f.write(''.join(map(lambda x: x.toline(), keypoints)))
                 img_idx += 1
 
                 if img_idx % 100 == 0:
