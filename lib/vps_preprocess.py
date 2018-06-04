@@ -5,8 +5,9 @@ import math
 import zipfile
 import luigi
 
-from datasets.pascal_voc import *
-from preprocess import pascal3d
+from datasets.pascal_voc import Dataset, Pascal, Imagenet
+from annotations.pascal3d import Pose, Annotations
+from utils.bbox import bbox_overlaps
 
 LIB_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_PATH = os.path.join(LIB_PATH, '..', 'data')
@@ -18,14 +19,29 @@ def write_annotations(task, imgset_list):
 
     with task.output().open('w') as f:
         for imgset in imgset_list:
-            for item in imgset['set']:
-                img_annot = pascal3d.Annotations(
-                    classes=item['classes'], dataset=imgset['dataset'],
-                    imgid=item['imgid'])
+            dataset = imgset['dataset']
 
-                if not img_annot.is_empty():
+            for item in imgset['set']:
+                img_annot = Annotations(
+                    classes=item['classes'], dataset=dataset, imgid=item['imgid'])
+                poses = []
+
+                for (cls, class_data) in img_annot.data.items():
+                    class_idx = dataset.CLASSES.index(cls)
+
+                    for item in class_data:
+                        for box in bbox_overlaps(item['bbox']):
+                            pose = Pose(
+                                class_idx=class_idx, bbox=box,
+                                azimuth=item['azimuth'],
+                                elevation=item['elevation'], theta=item['theta'])
+                            poses.append(pose)
+
+                if poses:
                     f.write('# {}\n'.format(img_idx))
                     f.write(img_annot.tolines())
+                    f.write('{}\n'.format(len(poses)))
+                    f.write(''.join(map(lambda x: x.toline(), poses)))
                     img_idx += 1
 
                     if img_idx % 100 == 0:

@@ -1,8 +1,9 @@
 import math
+import collections
 import numpy as np
 import scipy.io as sio
 
-from utils.bbox import *
+from utils.bbox import is_bbox_valid
 
 class Pose(object):
     def __init__(self, class_idx, bbox, azimuth, elevation, theta):
@@ -32,7 +33,7 @@ class Pose(object):
 class Annotations(object):
     def __init__(self, classes, dataset, imgid, exclude_occluded=True):
         self.__exclude_occluded = exclude_occluded
-        self.__data = []
+        self.data = collections.defaultdict(list)
 
         for idx, cls in enumerate(classes):
             data = sio.loadmat(dataset.matpath(cls, imgid))
@@ -41,15 +42,15 @@ class Annotations(object):
             if idx == 0:
                 self.__imgpath = dataset.imgpath(cls, record['filename'][0])
                 size = record['size'][0][0]
-                self.__width = size['width'][0][0]
-                self.__height = size['height'][0][0]
-                self.__depth = size['depth'][0][0]
+                self.width = size['width'][0][0]
+                self.height = size['height'][0][0]
+                self.depth = size['depth'][0][0]
 
-            class_idx = dataset.CLASSES.index(cls)
             objects = record['objects'][0]
-            self.read_class_data(cls, class_idx, objects)
+            self.data[cls] = self.__read_class_data(cls, objects)
 
-    def read_class_data(self, cls, class_idx, objects):
+    def __read_class_data(self, cls, objects):
+        data = []
         for obj in objects:
             obj_class = obj['class'][0]
             difficult = bool(obj['difficult'][0][0])
@@ -65,26 +66,20 @@ class Annotations(object):
             # Convert the bounding box from 1- to 0-indexed
             bbox = obj['bbox'][0] - 1
             bbox = np.round(bbox).astype(np.int)
-            if not is_bbox_valid(bbox, width=self.__width, height=self.__height):
+            if not is_bbox_valid(bbox, width=self.width, height=self.height):
                 continue
 
             viewpoint = obj['viewpoint'][0][0]
             azimuth = viewpoint['azimuth'][0][0]
             elevation = viewpoint['elevation'][0][0]
             theta = viewpoint['theta'][0][0]
+            data.append({'bbox': bbox,
+                         'azimuth': azimuth,
+                         'elevation': elevation,
+                         'theta': theta})
 
-            for box in bbox_overlaps(bbox):
-                pose = Pose(
-                    class_idx=class_idx, bbox=box, azimuth=azimuth,
-                    elevation=elevation, theta=theta)
-                self.__data.append(pose)
-
-    def is_empty(self):
-        return len(self.__data) == 0
+        return data
 
     def tolines(self):
-        lines = '{}\n{}\n{}\n{}\n'.format(
-            self.__imgpath, self.__depth, self.__height, self.__width)
-        lines += '{}\n'.format(len(self.__data))
-        lines += ''.join(map(lambda x: x.toline(), self.__data))
-        return lines
+        return '{}\n{}\n{}\n{}\n'.format(
+            self.__imgpath, self.depth, self.height, self.width)
