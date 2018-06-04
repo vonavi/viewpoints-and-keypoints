@@ -1,6 +1,6 @@
 import os
-import numpy as np
 import xml.etree.ElementTree as ET
+import numpy as np
 
 from annotations.keypoints import HeatMap
 from utils.bbox import is_bbox_valid
@@ -8,7 +8,7 @@ from utils.bbox import is_bbox_valid
 NUM_OF_KEYPOINTS = 27 * 4
 
 class Annotations(object):
-    def __init__(self, dataset, imgpath, exclude_occluded=True):
+    def __init__(self, imgpath, exclude_occluded=True):
         self.__exclude_occluded = exclude_occluded
         self.__imgpath = imgpath
 

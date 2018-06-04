@@ -1,12 +1,11 @@
 import os
 import sys
+import collections
+import numpy as np
+
 caffe_root = os.path.join('D:', os.sep, 'Repos', 'caffe')
 sys.path.insert(0, os.path.join(caffe_root, 'python'))
 import caffe
-
-import collections
-import numpy as np
-from PIL import Image
 
 from datasets.veh_keypoints import VehKeypoints
 from annotations.keypoints import Keypoints
@@ -45,14 +44,14 @@ part_annotations = collections.defaultdict(list)
 img_size = 0
 
 for imgpath in imgset:
-    img_annot = Annotations(dataset=dataset, imgpath=imgpath)
+    img_annot = Annotations(imgpath)
     img_bbox = np.array([0, 0, img_annot.width - 1, img_annot.height - 1])
     keypoints = Keypoints(
         class_idx=0, bbox=img_bbox, coords=img_annot.coords,
         start_idx=0, kps_flips=dataset.kps_flips)
 
     if img_size + 1 > batch_size:
-        preds = predict_annotations(net, dataset, transformer, part_annotations)
+        preds = predict_annotations(net, transformer, part_annotations)
         annot_predictions = np.append(annot_predictions, preds)
         part_annotations.clear()
         img_size = 0
@@ -60,7 +59,7 @@ for imgpath in imgset:
     part_annotations[imgpath] = [keypoints]
     img_size += 1
 
-preds = predict_annotations(net, dataset, transformer, part_annotations)
+preds = predict_annotations(net, transformer, part_annotations)
 annot_predictions = np.append(annot_predictions, preds)
 
 correct_predictions = annot_predictions.nonzero()[0]

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image
 
 from annotations.keypoints import HeatMap
 HeatMap.dims = [12, 12]
@@ -32,7 +32,7 @@ def predict_keypoints(kps_features, keypoints):
 
     return np.stack(gen_kps_predictions())
 
-def predict_annotations(net, dataset, transformer, annotations):
+def predict_annotations(net, transformer, annotations):
     count = 0
     for imgpath, annot_data in annotations.items():
         image = Image.open(imgpath)
@@ -52,7 +52,7 @@ def predict_annotations(net, dataset, transformer, annotations):
     count = 0
     for annot_data in annotations.values():
         for keypoints in annot_data:
-            kps_features = net.blobs['flatten6'].data[count]
+            kps_features = output['flatten6'][count]
             kps_predictions = predict_keypoints(kps_features, keypoints)
             annot_predictions = np.append(annot_predictions, kps_predictions)
             count += 1
@@ -104,7 +104,7 @@ def draw_windshield(start_indexes, kps_features, bbox, draw, fill):
                 kp_value = np.expand_dims(kp_value, axis=0)
                 bbox_values.append(kp_value)
 
-        if len(bbox_indexes) == 0:
+        if not bbox_indexes:
             continue
         bbox_indexes = np.concatenate(bbox_indexes)
         bbox_values = np.concatenate(bbox_values)

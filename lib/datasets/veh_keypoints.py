@@ -1,7 +1,6 @@
 import os
-
-import numpy as np
 import csv
+import numpy as np
 
 NUM_OF_KEYPOINTS = 27 * 4
 
@@ -57,7 +56,7 @@ class VehKeypoints(object):
 
     def get_image_paths(self):
         image_paths = []
-        for d, dirs, files in os.walk(self.__root):
+        for d, _, files in os.walk(self.__root):
             img_filenames = [img for img in files if img.endswith('.jpg')]
             xml_filenames = [xml for xml in files if xml.endswith('.xml')]
 

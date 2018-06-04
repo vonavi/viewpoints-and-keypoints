@@ -1,14 +1,14 @@
 import os
 import sys
+import collections
+import numpy as np
+import pandas as pd
+from PIL import Image, ImageDraw
+
 caffe_root = os.path.join('D:', os.sep, 'Repos', 'caffe')
 sys.path.insert(0, os.path.join(caffe_root, 'python'))
 import caffe
 
-import collections
-import numpy as np
-import pandas as pd
-
-from PIL import Image, ImageDraw
 from datasets.veh_keypoints import VehKeypoints
 from predict.transformer import Transformer
 from predict.veh_keypoints import draw_bbox, draw_all_keypoints
@@ -57,7 +57,7 @@ def predict_keypoints(net, dataset, transformer, frame_car_bboxes):
 
         for car_bbox in car_bboxes:
             draw_bbox(car_bbox, draw)
-            kps_features = net.blobs['flatten6'].data[count]
+            kps_features = output['flatten6'][count]
             draw_all_keypoints(dataset, kps_features, car_bbox, draw)
             count += 1
 

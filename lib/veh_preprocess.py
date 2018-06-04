@@ -1,5 +1,4 @@
 import os
-
 import math
 import random
 import luigi
@@ -26,7 +25,7 @@ def write_annotations(task, dataset, imgset):
 
     with task.output().open('w') as f:
         for imgpath in imgset:
-            img_annot = Annotations(dataset=dataset, imgpath=imgpath)
+            img_annot = Annotations(imgpath)
             img_bbox = np.array([0, 0, img_annot.width - 1, img_annot.height - 1])
 
             keypoints = []
