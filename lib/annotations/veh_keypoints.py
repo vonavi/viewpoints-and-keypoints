@@ -2,7 +2,7 @@ import os
 import numpy as np
 import xml.etree.ElementTree as ET
 
-from preprocess.keypoints import HeatMap, Keypoints
+from annotations.keypoints import HeatMap
 from utils.bbox import is_bbox_valid
 
 NUM_OF_KEYPOINTS = 27 * 4

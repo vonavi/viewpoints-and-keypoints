@@ -6,7 +6,7 @@ import luigi
 
 from vps_preprocess import UnzipPascal3d
 from datasets.pascal_voc import Dataset, Pascal
-from preprocess.keypoints import HeatMap, Keypoints
+from annotations.keypoints import HeatMap, Keypoints
 from annotations.segkps import Annotations
 from utils.bbox import bbox_overlaps
 

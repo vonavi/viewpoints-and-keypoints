@@ -6,7 +6,7 @@ import luigi
 import numpy as np
 
 from datasets.veh_keypoints import VehKeypoints
-from preprocess.keypoints import HeatMap, Keypoints
+from annotations.keypoints import HeatMap, Keypoints
 from annotations.veh_keypoints import Annotations
 from utils.bbox import bbox_overlaps
 

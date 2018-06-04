@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image
 
 from datasets.veh_keypoints import VehKeypoints
-from preprocess.keypoints import Keypoints
+from annotations.keypoints import Keypoints
 from annotations.veh_keypoints import Annotations
 from predict.transformer import Transformer
 from predict.veh_keypoints import predict_annotations

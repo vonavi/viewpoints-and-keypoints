@@ -2,7 +2,7 @@ import collections
 import numpy as np
 import scipy.io as sio
 
-from preprocess.keypoints import HeatMap
+from annotations.keypoints import HeatMap
 from utils.bbox import is_bbox_valid
 
 class Annotations(object):

@@ -3,7 +3,7 @@ import matplotlib.colors as mcolors
 import numpy as np
 from PIL import Image, ImageDraw
 
-from preprocess.keypoints import HeatMap
+from annotations.keypoints import HeatMap
 HeatMap.dims = [12, 12]
 
 def keypoint_index(features, start_idx):
