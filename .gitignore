@@ -7,5 +7,12 @@
 # Ignore image data
 /data/*
 !/data/segkps.zip
+!/data/veh_keypoints/
+/data/veh_keypoints/*
+!/data/veh_keypoints/veh_keypoints.csv
+
+# Pretrained models
+/pretrainedModels/*
+!/pretrainedModels/.gitkeep
 
 __pycache__/
