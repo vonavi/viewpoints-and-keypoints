@@ -3,7 +3,7 @@ import numpy as np
 import xml.etree.ElementTree as ET
 
 from preprocess.keypoints import HeatMap, Keypoints
-from utils.bbox import *
+from utils.bbox import is_bbox_valid
 
 NUM_OF_KEYPOINTS = 27 * 4
 
@@ -11,22 +11,20 @@ class Annotations(object):
     def __init__(self, dataset, imgpath, exclude_occluded=True):
         self.__exclude_occluded = exclude_occluded
         self.__imgpath = imgpath
-        self.__data = []
 
         xmlpath = os.path.splitext(imgpath)[0] + '.xml'
         tree = ET.parse(xmlpath)
         root = tree.getroot()
 
-        size = tree.find('size')
-        self.__width = int(size.find('width').text)
-        self.__height = int(size.find('height').text)
-        self.__depth = int(size.find('depth').text)
+        size = root.find('size')
+        self.width = int(size.find('width').text)
+        self.height = int(size.find('height').text)
+        self.depth = int(size.find('depth').text)
 
-        kps_flips = dataset.kps_flips
         objects = root.findall('object')
-        self.read_data(objects, kps_flips)
+        self.coords = self.__read_coords(objects)
 
-    def read_data(self, objects, kps_flips):
+    def __read_coords(self, objects):
         coords = np.empty((NUM_OF_KEYPOINTS, 2))
         coords.fill(np.nan)
 
@@ -47,8 +45,7 @@ class Annotations(object):
             kps_bbox[3] = int(bndbox.find('ymax').text)
             # Make bounding box to be 0-indexed
             kps_bbox -= 1
-            if not is_bbox_valid(
-                    kps_bbox, width=self.__width, height=self.__height):
+            if not is_bbox_valid(kps_bbox, width=self.width, height=self.height):
                 continue
 
             coords[4 * kps_idx    ] = np.array([kps_bbox[0], kps_bbox[1]])
@@ -56,20 +53,9 @@ class Annotations(object):
             coords[4 * kps_idx + 2] = np.array([kps_bbox[2], kps_bbox[1]])
             coords[4 * kps_idx + 3] = np.array([kps_bbox[2], kps_bbox[3]])
 
-        image_bbox = np.array([0, 0, self.__width - 1, self.__height - 1])
-        for box in bbox_overlaps(image_bbox):
-            keypoints = Keypoints(
-                class_idx=0, bbox=box, coords=coords,
-                start_idx=0, kps_flips=kps_flips)
-            self.__data.append(keypoints)
-
-    def is_empty(self):
-        return len(self.__data) == 0
+        return coords
 
     def tolines(self):
-        lines = '{}\n{}\n{}\n{}\n{}\n'.format(
-            self.__imgpath, self.__depth, self.__height, self.__width,
+        return '{}\n{}\n{}\n{}\n{}\n'.format(
+            self.__imgpath, self.depth, self.height, self.width,
             NUM_OF_KEYPOINTS * HeatMap.dims[0] * HeatMap.dims[1])
-        lines += '{}\n'.format(len(self.__data))
-        lines += ''.join(map(lambda x: x.toline(), self.__data))
-        return lines

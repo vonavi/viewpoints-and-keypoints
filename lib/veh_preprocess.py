@@ -3,10 +3,12 @@ import os
 import math
 import random
 import luigi
+import numpy as np
 
 from datasets.veh_keypoints import VehKeypoints
-from preprocess.keypoints import HeatMap
-from preprocess import veh_keypoints
+from preprocess.keypoints import HeatMap, Keypoints
+from annotations.veh_keypoints import Annotations
+from utils.bbox import bbox_overlaps
 
 LIB_PATH = os.path.dirname(os.path.realpath(__file__))
 CACHE_PATH = os.path.join(LIB_PATH, '..', 'cachedir')
@@ -24,12 +26,21 @@ def write_annotations(task, dataset, imgset):
 
     with task.output().open('w') as f:
         for imgpath in imgset:
-            img_annot = veh_keypoints.Annotations(
-                dataset=dataset, imgpath=imgpath)
+            img_annot = Annotations(dataset=dataset, imgpath=imgpath)
+            img_bbox = np.array([0, 0, img_annot.width - 1, img_annot.height - 1])
 
-            if not img_annot.is_empty():
+            keypoints = []
+            for box in bbox_overlaps(img_bbox):
+                kps = Keypoints(
+                    class_idx=0, bbox=box, coords=img_annot.coords,
+                    start_idx=0, kps_flips=dataset.kps_flips)
+                keypoints.append(kps)
+
+            if keypoints:
                 f.write('# {}\n'.format(img_idx))
                 f.write(img_annot.tolines())
+                f.write('{}\n'.format(len(keypoints)))
+                f.write(''.join(map(lambda x: x.toline(), keypoints)))
                 img_idx += 1
 
                 if img_idx % 100 == 0:

@@ -12,12 +12,12 @@ class HeatMap(object):
 class Keypoints(object):
     def __init__(self, class_idx, bbox, coords, start_idx, kps_flips):
         self.__class_idx = class_idx
-        self.__bbox = bbox
+        self.bbox = bbox
         self.__start_idx = start_idx
         self.__kps_flips = kps_flips
 
         good_coords = np.all(~np.isnan(coords), axis=1)
-        self.__indexes = good_coords.nonzero()[0]
+        self.indexes = good_coords.nonzero()[0]
         self.__coords = coords[good_coords]
 
         HeatMap.sigma = 0.5
@@ -33,7 +33,7 @@ class Keypoints(object):
             len(self.__kps_flips) * HeatMap.dims[0] * HeatMap.dims[1] - 1
         kps_str = '{} {} {}'.format(kps_len, kps_start, kps_end)
 
-        for kp_idx, kps in zip(self.__indexes, gaussian):
+        for kp_idx, kps in zip(self.indexes, gaussian):
             flip_kp_idx = self.__kps_flips[kp_idx]
             kp_idx += self.__start_idx
             flip_kp_idx += self.__start_idx
@@ -48,10 +48,10 @@ class Keypoints(object):
 
         # Object class should be 1-indexed
         return '{} {} {} {} {} {} {}\n'.format(
-            self.__class_idx + 1, 1.0, *self.__bbox, kps_str)
+            self.__class_idx + 1, 1.0, *self.bbox, kps_str)
 
     def normalized_coords(self):
-        x1, y1, x2, y2 = self.__bbox
+        x1, y1, x2, y2 = self.bbox
         dx = float(x2 - x1 + 1) / float(HeatMap.dims[0])
         dy = float(y2 - y1 + 1) / float(HeatMap.dims[1])
 
