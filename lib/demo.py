@@ -5,15 +5,15 @@ import numpy as np
 import pandas as pd
 from PIL import Image, ImageDraw
 
-caffe_root = os.path.join('D:', os.sep, 'Repos', 'caffe')
-sys.path.insert(0, os.path.join(caffe_root, 'python'))
+LIB_PATH = os.path.dirname(os.path.realpath(__file__))
+CAFFE_ROOT = os.path.join(LIB_PATH, '..', 'external', 'caffe')
+sys.path.insert(0, os.path.join(CAFFE_ROOT, 'python'))
 import caffe
 
 from datasets.veh_keypoints import VehKeypoints
 from predict.transformer import Transformer
 from predict.veh_keypoints import draw_bbox, draw_all_keypoints
 
-LIB_PATH = os.path.dirname(os.path.realpath(__file__))
 CACHE_PATH = os.path.join(LIB_PATH, '..', 'cachedir')
 VEH_KEYPOINTS_PATH = os.path.join(LIB_PATH, '..', 'data', 'veh_keypoints')
 net_proto = os.path.join(
@@ -21,7 +21,7 @@ net_proto = os.path.join(
 net_weights = os.path.join(
     CACHE_PATH, 'snapshots', 'vgg_veh_conv12_iter_70000.caffemodel')
 
-imageset_path = os.path.join('D:', os.sep, 'Data', 'key_point_task', '20171211')
+imageset_path = os.path.join(os.sep, 'home', 'DB', 'veh_keypoints')
 annotation_path = os.path.join(imageset_path, 'HuanChengRoad_014_mediacode.csv')
 
 def predict_keypoints(net, dataset, transformer, frame_car_bboxes):

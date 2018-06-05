@@ -3,8 +3,9 @@ import sys
 import collections
 import numpy as np
 
-caffe_root = os.path.join('D:', os.sep, 'Repos', 'caffe')
-sys.path.insert(0, os.path.join(caffe_root, 'python'))
+LIB_PATH = os.path.dirname(os.path.realpath(__file__))
+CAFFE_ROOT = os.path.join(LIB_PATH, '..', 'external', 'caffe')
+sys.path.insert(0, os.path.join(CAFFE_ROOT, 'python'))
 import caffe
 
 from datasets.veh_keypoints import VehKeypoints
@@ -13,7 +14,6 @@ from annotations.veh_keypoints import Annotations
 from predict.transformer import Transformer
 from predict.veh_keypoints import predict_annotations
 
-LIB_PATH = os.path.dirname(os.path.realpath(__file__))
 CACHE_PATH = os.path.join(LIB_PATH, '..', 'cachedir')
 VEH_KEYPOINTS_PATH = os.path.join(LIB_PATH, '..', 'data', 'veh_keypoints')
 net_proto = os.path.join(
@@ -24,6 +24,7 @@ net_weights = os.path.join(
 net = caffe.Net(net_proto, net_weights, caffe.TEST)
 input_shape = net.blobs['data'].data.shape
 caffe.set_mode_gpu()
+caffe.set_device(0)
 batch_size = input_shape[0]
 
 # create transformer for the input called 'data'
