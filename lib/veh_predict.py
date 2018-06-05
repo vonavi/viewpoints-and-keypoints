@@ -21,7 +21,7 @@ net_proto = os.path.join(
 net_weights = os.path.join(
     CACHE_PATH, 'snapshots', 'vgg_veh_conv12_iter_70000.caffemodel')
 
-net = caffe.Net(net_proto, net_weights, caffe.TEST)
+net = caffe.Net(net_proto, caffe.TEST, weights=net_weights)
 input_shape = net.blobs['data'].data.shape
 caffe.set_mode_gpu()
 caffe.set_device(0)
