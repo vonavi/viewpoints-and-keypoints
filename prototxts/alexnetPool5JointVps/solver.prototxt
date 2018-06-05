@@ -1,4 +1,4 @@
-net: "/home/vonavi/repos/viewpoints-and-keypoints/prototxts/alexnetPool5JointVps/trainTest.prototxt"
+net: "/home/i00312532/repos/viewpoints-and-keypoints/prototxts/alexnetPool5JointVps/trainTest.prototxt"
 test_iter: 100
 test_interval: 1000
 base_lr: 0.001
@@ -10,4 +10,4 @@ max_iter: 70000
 momentum: 0.9
 weight_decay: 0.0005
 snapshot: 10000
-snapshot_prefix: "/home/vonavi/repos/viewpoints-and-keypoints/cachedir/snapshots/alexnetPool5JointVps"
+snapshot_prefix: "/home/i00312532/repos/viewpoints-and-keypoints/cachedir/snapshots/alexnetPool5JointVps"
