@@ -22,15 +22,15 @@ def keypoint_index(features, start_idx):
     return (kp_idx, kp_value)
 
 def predict_keypoints(kps_features, keypoints):
-    def gen_kps_predictions():
-        for start_idx, norm_coords in \
-            zip(keypoints.indexes, keypoints.normalized_coords()):
+    kps_predictions = []
+    for start_idx, norm_coords in \
+        zip(keypoints.indexes, keypoints.normalized_coords()):
 
-            kp_idx, kp_value = keypoint_index(kps_features, start_idx)
-            prediction = kp_value >= 0 and np.all(kp_idx == norm_coords)
-            yield prediction
+        kp_idx, kp_value = keypoint_index(kps_features, start_idx)
+        prediction = kp_value >= 0 and np.all(kp_idx == norm_coords)
+        kps_predictions.append(prediction)
 
-    return np.stack(gen_kps_predictions())
+    return np.array(kps_predictions, dtype=np.bool)
 
 def predict_annotations(net, transformer, annotations):
     count = 0
@@ -51,9 +51,9 @@ def predict_annotations(net, transformer, annotations):
     annot_predictions = np.empty(0, dtype=np.bool)
     count = 0
     for annot_data in annotations.values():
-        for keypoints in annot_data:
+        for kps in annot_data:
             kps_features = output['flatten6'][count]
-            kps_predictions = predict_keypoints(kps_features, keypoints)
+            kps_predictions = predict_keypoints(kps_features, kps)
             annot_predictions = np.append(annot_predictions, kps_predictions)
             count += 1
 

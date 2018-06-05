@@ -50,13 +50,17 @@ class Keypoints(object):
             self.__class_idx + 1, 1.0, *self.bbox, kps_str)
 
     def normalized_coords(self):
-        x1, y1, x2, y2 = self.bbox
-        dx = float(x2 - x1 + 1) / float(HeatMap.dims[0])
-        dy = float(y2 - y1 + 1) / float(HeatMap.dims[1])
+        shape = self.__coords.shape
+        coords = np.empty(shape, dtype=np.int)
 
-        coords = np.empty(self.__coords.shape, dtype=np.int)
-        coords[:, 0] = np.floor((self.__coords[:, 0] - x1) / dx).astype(np.int)
-        coords[:, 1] = np.floor((self.__coords[:, 1] - y1) / dy).astype(np.int)
+        if shape[0] > 0:
+            x1, y1, x2, y2 = self.bbox
+            dx = float(x2 - x1 + 1) / float(HeatMap.dims[0])
+            dy = float(y2 - y1 + 1) / float(HeatMap.dims[1])
+
+            coords[:, 0] = np.floor((self.__coords[:, 0] - x1) / dx).astype(np.int)
+            coords[:, 1] = np.floor((self.__coords[:, 1] - y1) / dy).astype(np.int)
+
         return coords
 
     @staticmethod
