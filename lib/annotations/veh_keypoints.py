@@ -25,9 +25,7 @@ class Annotations(object):
         self.coords = self.__read_coords(objects)
 
     def __read_coords(self, objects):
-        coords = np.empty((NUM_OF_KEYPOINTS, 2))
-        coords.fill(np.nan)
-
+        coords = np.ma.masked_all((NUM_OF_KEYPOINTS, 2), dtype=np.int)
         for obj in objects:
             truncated = bool(int(obj.find('truncated').text))
             difficult = bool(int(obj.find('difficult').text))

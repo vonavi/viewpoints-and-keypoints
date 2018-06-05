@@ -16,9 +16,8 @@ class Keypoints(object):
         self.__start_idx = start_idx
         self.__kps_flips = kps_flips
 
-        good_coords = np.all(~np.isnan(coords), axis=1)
-        self.indexes = good_coords.nonzero()[0]
-        self.__coords = coords[good_coords]
+        self.indexes = np.ma.any(coords, axis=1).nonzero()[0]
+        self.__coords = np.ma.compress_rows(coords)
 
         HeatMap.sigma = 0.5
         HeatMap.thresh = 0.2
