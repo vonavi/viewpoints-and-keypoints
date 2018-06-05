@@ -1,5 +1,8 @@
 luigi
 numpy
+pandas
 Pillow
+protobuf
+scikit-image
 scikit-learn
 scipy
